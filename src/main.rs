@@ -50,10 +50,6 @@ impl OpCode {
 #[rustfmt::skip]
 lazy_static! {
     pub static ref CPU_OPCODES: HashMap<u8, OpCode> = HashMap::from([
-        // MODE           SYNTAX       HEX LEN TIM
-        // Indirect,X    ADC ($44,X)   $61  2   6
-        // Indirect,Y    ADC ($44),Y   $71  2   5+
-
         (0x69, OpCode::new("ADC", 2, 2, AddressingMode::Immediate)),
         (0x65, OpCode::new("ADC", 2, 3, AddressingMode::ZeroPage)),
         (0x75, OpCode::new("ADC", 2, 4, AddressingMode::ZeroPage_X)),
@@ -335,7 +331,7 @@ impl CPU {
     pub fn reset(&mut self) {
         self.register_a = 0;
         self.register_x = 0;
-        // self.register_y = 0;
+        self.register_y = 0;
         self.status = 0;
         self.program_counter = self.mem_read_u16(0xFFFC);
     }
@@ -351,6 +347,124 @@ impl CPU {
         self.mem_write_u16(0xFFFC, 0x8000);
     }
 
+    fn adc(&mut self, opcode: &OpCode) {
+        todo!()
+    }
+
+    fn and(&mut self, opcode: &OpCode) {
+        todo!()
+    }
+
+    fn asl(&mut self, opcode: &OpCode) {
+        todo!()
+    }
+
+    fn bcc(&mut self, opcode: &OpCode) {
+        todo!()
+    }
+
+    fn bcs(&mut self, opcode: &OpCode) {
+        todo!()
+    }
+
+    fn beq(&mut self, opcode: &OpCode) {
+        todo!()
+    }
+
+    fn bit(&mut self, opcode: &OpCode) {
+        todo!()
+    }
+
+    fn bmi(&mut self, opcode: &OpCode) {
+        todo!()
+    }
+
+    fn bne(&mut self, opcode: &OpCode) {
+        todo!()
+    }
+
+    fn bpl(&mut self, opcode: &OpCode) {
+        todo!()
+    }
+
+    fn brk(&mut self, opcode: &OpCode) {
+        todo!()
+    }
+
+    fn bvc(&mut self, opcode: &OpCode) {
+        todo!()
+    }
+
+    fn bvs(&mut self, opcode: &OpCode) {
+        todo!()
+    }
+
+    fn clc(&mut self, opcode: &OpCode) {
+        todo!()
+    }
+
+    fn cld(&mut self, opcode: &OpCode) {
+        todo!()
+    }
+
+    fn cli(&mut self, opcode: &OpCode) {
+        todo!()
+    }
+
+    fn clv(&mut self, opcode: &OpCode) {
+        todo!()
+    }
+
+    fn cmp(&mut self, opcode: &OpCode) {
+        todo!()
+    }
+
+    fn cpx(&mut self, opcode: &OpCode) {
+        todo!()
+    }
+
+    fn cpy(&mut self, opcode: &OpCode) {
+        todo!()
+    }
+
+    fn dec(&mut self, opcode: &OpCode) {
+        todo!()
+    }
+
+    fn dex(&mut self, opcode: &OpCode) {
+        todo!()
+    }
+
+    fn dey(&mut self, opcode: &OpCode) {
+        todo!()
+    }
+
+    fn eor(&mut self, opcode: &OpCode) {
+        todo!()
+    }
+
+    fn inc(&mut self, opcode: &OpCode) {
+        todo!()
+    }
+
+    fn inx(&mut self, opcode: &OpCode) {
+        self.register_x = self.register_x.wrapping_add(1);
+        self.update_zero_and_negative_flags(self.register_x);
+        self.program_counter += opcode.length;
+    }
+
+    fn iny(&mut self, opcode: &OpCode) {
+        todo!()
+    }
+
+    fn jmp(&mut self, opcode: &OpCode) {
+        todo!()
+    }
+
+    fn jsr(&mut self, opcode: &OpCode) {
+        todo!()
+    }
+
     fn lda(&mut self, opcode: &OpCode) {
         let addr = self.get_operand_address(&opcode.mode);
         let value = self.mem_read(addr);
@@ -360,10 +474,86 @@ impl CPU {
         self.program_counter += &opcode.length;
     }
 
+    fn ldx(&mut self, opcode: &OpCode) {
+        todo!()
+    }
+
+    fn ldy(&mut self, opcode: &OpCode) {
+        todo!()
+    }
+
+    fn lsr(&mut self, opcode: &OpCode) {
+        todo!()
+    }
+
+    fn nop(&mut self, opcode: &OpCode) {
+        todo!()
+    }
+
+    fn ora(&mut self, opcode: &OpCode) {
+        todo!()
+    }
+
+    fn pha(&mut self, opcode: &OpCode) {
+        todo!()
+    }
+
+    fn php(&mut self, opcode: &OpCode) {
+        todo!()
+    }
+
+    fn pla(&mut self, opcode: &OpCode) {
+        todo!()
+    }
+
+    fn plp(&mut self, opcode: &OpCode) {
+        todo!()
+    }
+
+    fn rol(&mut self, opcode: &OpCode) {
+        todo!()
+    }
+
+    fn ror(&mut self, opcode: &OpCode) {
+        todo!()
+    }
+
+    fn rti(&mut self, opcode: &OpCode) {
+        todo!()
+    }
+
+    fn rts(&mut self, opcode: &OpCode) {
+        todo!()
+    }
+
+    fn sbc(&mut self, opcode: &OpCode) {
+        todo!()
+    }
+
+    fn sec(&mut self, opcode: &OpCode) {
+        todo!()
+    }
+
+    fn sed(&mut self, opcode: &OpCode) {
+        todo!()
+    }
+
+    fn sei(&mut self, opcode: &OpCode) {
+        todo!()
+    }
+
     fn sta(&mut self, opcode: &OpCode) {
         let addr = self.get_operand_address(&opcode.mode);
         self.mem_write(addr, self.register_a);
         self.program_counter += opcode.length;
+    }
+
+    fn stx(&mut self, opcode: &OpCode) {
+        todo!()
+    }
+
+    fn sty(&mut self, opcode: &OpCode) {
+        todo!()
     }
 
     fn tax(&mut self, opcode: &OpCode) {
@@ -372,10 +562,24 @@ impl CPU {
         self.program_counter += opcode.length;
     }
 
-    fn inx(&mut self, opcode: &OpCode) {
-        self.register_x = self.register_x.wrapping_add(1);
-        self.update_zero_and_negative_flags(self.register_x);
-        self.program_counter += opcode.length;
+    fn tay(&mut self, opcode: &OpCode) {
+        todo!()
+    }
+
+    fn tsx(&mut self, opcode: &OpCode) {
+        todo!()
+    }
+
+    fn txa(&mut self, opcode: &OpCode) {
+        todo!()
+    }
+
+    fn txs(&mut self, opcode: &OpCode) {
+        todo!()
+    }
+
+    fn tya(&mut self, opcode: &OpCode) {
+        todo!()
     }
 
     fn update_zero_and_negative_flags(&mut self, result: u8) {
@@ -401,12 +605,63 @@ impl CPU {
                 .expect(format!("opcode {:X} not found", byte).as_str());
 
             match &*opcode.name.to_lowercase() {
-                "brk" => return,
-                "lda" => self.lda(opcode),
-                "sta" => self.sta(opcode),
-                "tax" => self.tax(opcode),
+                "adc" => self.adc(opcode),
+                "and" => self.and(opcode),
+                "asl" => self.asl(opcode),
+                "bcc" => self.bcc(opcode),
+                "bcs" => self.bcs(opcode),
+                "beq" => self.beq(opcode),
+                "bit" => self.bit(opcode),
+                "bmi" => self.bmi(opcode),
+                "bne" => self.bne(opcode),
+                "bpl" => self.bpl(opcode),
+                "brk" => self.brk(opcode),
+                "bvc" => self.bvc(opcode),
+                "bvs" => self.bvs(opcode),
+                "clc" => self.clc(opcode),
+                "cld" => self.cld(opcode),
+                "cli" => self.cli(opcode),
+                "clv" => self.clv(opcode),
+                "cmp" => self.cmp(opcode),
+                "cpx" => self.cpx(opcode),
+                "cpy" => self.cpy(opcode),
+                "dec" => self.dec(opcode),
+                "dex" => self.dex(opcode),
+                "dey" => self.dey(opcode),
+                "eor" => self.eor(opcode),
+                "inc" => self.inc(opcode),
                 "inx" => self.inx(opcode),
-                _ => todo!("opcode not implemented"),
+                "iny" => self.iny(opcode),
+                "jmp" => self.jmp(opcode),
+                "jsr" => self.jsr(opcode),
+                "lda" => self.lda(opcode),
+                "ldx" => self.ldx(opcode),
+                "ldy" => self.ldy(opcode),
+                "lsr" => self.lsr(opcode),
+                "nop" => self.nop(opcode),
+                "ora" => self.ora(opcode),
+                "pha" => self.pha(opcode),
+                "php" => self.php(opcode),
+                "pla" => self.pla(opcode),
+                "plp" => self.plp(opcode),
+                "rol" => self.rol(opcode),
+                "ror" => self.ror(opcode),
+                "rti" => self.rti(opcode),
+                "rts" => self.rts(opcode),
+                "sbc" => self.sbc(opcode),
+                "sec" => self.sec(opcode),
+                "sed" => self.sed(opcode),
+                "sei" => self.sei(opcode),
+                "sta" => self.sta(opcode),
+                "stx" => self.stx(opcode),
+                "sty" => self.sty(opcode),
+                "tax" => self.tax(opcode),
+                "tay" => self.tay(opcode),
+                "tsx" => self.tsx(opcode),
+                "txa" => self.txa(opcode),
+                "txs" => self.txs(opcode),
+                "tya" => self.tya(opcode),
+                other => panic!("unrecognized opcode {other}"),
             }
         }
     }
