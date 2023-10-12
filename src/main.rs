@@ -79,14 +79,14 @@ lazy_static! {
 
         // A branch not taken requires two machine cycles.
         // Add one if the branch is taken and add one more if the branch crosses a page boundary.
-        (0x10, OpCode::new(0x10, "BPL", 2, 2, AddressingMode::Immediate)), // +1
-        (0x30, OpCode::new(0x30, "BMI", 2, 2, AddressingMode::ZeroPage)), // +1
-        (0x50, OpCode::new(0x50, "BVC", 2, 3, AddressingMode::ZeroPage_X)),
-        (0x70, OpCode::new(0x70, "BVS", 2, 2, AddressingMode::Absolute)), // +1
-        (0x90, OpCode::new(0x90, "BCC", 2, 2, AddressingMode::Absolute_X)), // +1
-        (0xB0, OpCode::new(0xB0, "BCS", 2, 2, AddressingMode::Absolute_Y)), // +1
-        (0xD0, OpCode::new(0xD0, "BNE", 2, 2, AddressingMode::Indirect_X)), // +1
-        (0xF0, OpCode::new(0xF0, "BEQ", 2, 2, AddressingMode::Indirect_Y)), // +1
+        (0x10, OpCode::new(0x10, "BPL", 2, 2, AddressingMode::Immediate)),
+        (0x30, OpCode::new(0x30, "BMI", 2, 2, AddressingMode::Immediate)),
+        (0x50, OpCode::new(0x50, "BVC", 2, 3, AddressingMode::Immediate)),
+        (0x70, OpCode::new(0x70, "BVS", 2, 2, AddressingMode::Immediate)),
+        (0x90, OpCode::new(0x90, "BCC", 2, 2, AddressingMode::Immediate)),
+        (0xB0, OpCode::new(0xB0, "BCS", 2, 2, AddressingMode::Immediate)),
+        (0xD0, OpCode::new(0xD0, "BNE", 2, 2, AddressingMode::Immediate)),
+        (0xF0, OpCode::new(0xF0, "BEQ", 2, 2, AddressingMode::Immediate)),
 
         (0x00, OpCode::new(0x00, "BRK", 1, 7, AddressingMode::NoneAddressing)),
 
@@ -386,31 +386,31 @@ impl CPU {
     }
 
     fn bcc(&mut self, opcode: &OpCode) {
-        todo!()
+        self.branch(opcode, self.status & 0b0000_0001 == 0);
     }
 
     fn bcs(&mut self, opcode: &OpCode) {
-        todo!()
+        self.branch(opcode, self.status & 0b0000_0001 != 0);
     }
 
     fn beq(&mut self, opcode: &OpCode) {
-        todo!()
+        self.branch(opcode, self.status & 0b0000_0010 != 0);
     }
 
     fn bit(&mut self, opcode: &OpCode) {
-        todo!()
+        todo!();
     }
 
     fn bmi(&mut self, opcode: &OpCode) {
-        todo!()
+        self.branch(opcode, self.status & 0b1000_0000 != 0);
     }
 
     fn bne(&mut self, opcode: &OpCode) {
-        todo!()
+        self.branch(opcode, self.status & 0b0000_0010 == 0);
     }
 
     fn bpl(&mut self, opcode: &OpCode) {
-        todo!()
+        self.branch(opcode, self.status & 0b1000_0000 == 0);
     }
 
     // fn brk(&mut self, opcode: &OpCode) {
@@ -418,11 +418,11 @@ impl CPU {
     // }
 
     fn bvc(&mut self, opcode: &OpCode) {
-        todo!()
+        self.branch(opcode, self.status & 0b0100_0000 == 0);
     }
 
     fn bvs(&mut self, opcode: &OpCode) {
-        todo!()
+        self.branch(opcode, self.status & 0b0100_0000 != 0);
     }
 
     fn clc(&mut self, opcode: &OpCode) {
@@ -633,6 +633,15 @@ impl CPU {
         }
     }
 
+    fn branch(&mut self, opcode: &OpCode, conditional: bool) {
+        if conditional {
+            let addr = self.get_operand_address(&opcode.mode);
+            let value = self.mem_read(addr);
+            self.program_counter = self.program_counter.wrapping_add(value as i8 as i16 as u16);
+        }
+        self.program_counter += opcode.length;
+    }
+
     pub fn run(&mut self) {
         loop {
             let byte = self.mem_read(self.program_counter);
@@ -753,17 +762,49 @@ mod test {
 
     #[test]
     fn test_bcc() {
-        return;
+        let mut cpu = CPU::new();
+        cpu.load(vec![0x90, 0x10]);
+        cpu.reset();
+        let orig_pc = cpu.program_counter;
+        cpu.status = 0b1111_1110;
+        cpu.run();
+
+        assert_eq!(cpu.program_counter, orig_pc + 0x12);
+    }
+    #[test]
+    fn test_bcc_negative() {
+        let mut cpu = CPU::new();
+        cpu.load(vec![0x90, (-16 as i8 as u8)]);
+        cpu.reset();
+        let orig_pc = cpu.program_counter;
+        cpu.status = 0b1111_1110;
+        cpu.run();
+
+        assert_eq!(cpu.program_counter, orig_pc - 14);
     }
 
     #[test]
     fn test_bcs() {
-        return;
+        let mut cpu = CPU::new();
+        cpu.load(vec![0xB0, 0x10]);
+        cpu.reset();
+        let orig_pc = cpu.program_counter;
+        cpu.status = 0b0000_0001;
+        cpu.run();
+
+        assert_eq!(cpu.program_counter, orig_pc + 0x12);
     }
 
     #[test]
     fn test_beq() {
-        return;
+        let mut cpu = CPU::new();
+        cpu.load(vec![0xF0, 0x10]);
+        cpu.reset();
+        let orig_pc = cpu.program_counter;
+        cpu.status = 0b0000_0010;
+        cpu.run();
+
+        assert_eq!(cpu.program_counter, orig_pc + 0x12);
     }
 
     #[test]
@@ -773,17 +814,38 @@ mod test {
 
     #[test]
     fn test_bmi() {
-        return;
+        let mut cpu = CPU::new();
+        cpu.load(vec![0x30, 0x10]);
+        cpu.reset();
+        let orig_pc = cpu.program_counter;
+        cpu.status = 0b1000_0000;
+        cpu.run();
+
+        assert_eq!(cpu.program_counter, orig_pc + 0x12);
     }
 
     #[test]
     fn test_bne() {
-        return;
+        let mut cpu = CPU::new();
+        cpu.load(vec![0xD0, 0x10]);
+        cpu.reset();
+        let orig_pc = cpu.program_counter;
+        cpu.status = 0b1111_1101;
+        cpu.run();
+
+        assert_eq!(cpu.program_counter, orig_pc + 0x12);
     }
 
     #[test]
     fn test_bpl() {
-        return;
+        let mut cpu = CPU::new();
+        cpu.load(vec![0x10, 0x10]);
+        cpu.reset();
+        let orig_pc = cpu.program_counter;
+        cpu.status = 0b0111_1111;
+        cpu.run();
+
+        assert_eq!(cpu.program_counter, orig_pc + 0x12);
     }
 
     #[test]
@@ -793,12 +855,26 @@ mod test {
 
     #[test]
     fn test_bvc() {
-        return;
+        let mut cpu = CPU::new();
+        cpu.load(vec![0x50, 0x10]);
+        cpu.reset();
+        let orig_pc = cpu.program_counter;
+        cpu.status = 0b1011_1111;
+        cpu.run();
+
+        assert_eq!(cpu.program_counter, orig_pc + 0x12);
     }
 
     #[test]
     fn test_bvs() {
-        return;
+        let mut cpu = CPU::new();
+        cpu.load(vec![0x70, 0x10]);
+        cpu.reset();
+        let orig_pc = cpu.program_counter;
+        cpu.status = 0b0100_0000;
+        cpu.run();
+
+        assert_eq!(cpu.program_counter, orig_pc + 0x12);
     }
 
     #[test]
