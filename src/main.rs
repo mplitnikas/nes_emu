@@ -1,3 +1,6 @@
+use lazy_static::lazy_static;
+use std::collections::HashMap;
+
 fn main() {
     println!("Hello, world!");
 }
@@ -15,6 +18,69 @@ pub enum AddressingMode {
     Indirect_X,
     Indirect_Y,
     NoneAddressing,
+}
+
+pub struct OpCode {
+    code: u8,
+    name: &'static str,
+    length: u16,
+    cycles: usize,
+    mode: AddressingMode,
+}
+
+impl OpCode {
+    pub const fn new(
+        code: u8,
+        name: &'static str,
+        length: u16,
+        cycles: usize,
+        mode: AddressingMode,
+    ) -> Self {
+        OpCode {
+            code,
+            name,
+            length,
+            cycles,
+            mode,
+        }
+    }
+}
+
+#[rustfmt::skip]
+lazy_static! {
+    pub static ref CPU_OPCODES: HashMap<u8, OpCode> = HashMap::from([
+        (0x00, OpCode::new(0x00, "BRK", 1, 7, AddressingMode::NoneAddressing)),
+
+        (0xA9, OpCode::new(0xA9, "LDA", 2, 2, AddressingMode::Immediate)),
+        (0xA5, OpCode::new(0xA5, "LDA", 2, 3, AddressingMode::ZeroPage)),
+        (0xB5, OpCode::new(0xB5, "LDA", 2, 4, AddressingMode::ZeroPage_X)),
+        (0xAD, OpCode::new(0xAD, "LDA", 3, 4, AddressingMode::Absolute)),
+        (0xBD, OpCode::new(0xBD, "LDA", 3, 4, AddressingMode::Absolute_X)), // +1 if page crossed
+        (0xB9, OpCode::new(0xB9, "LDA", 3, 4, AddressingMode::Absolute_Y)), // +1 if page crossed
+        (0xA1, OpCode::new(0xA1, "LDA", 2, 6, AddressingMode::Indirect_X)), // +1 if page crossed
+        (0xB1, OpCode::new(0xB1, "LDA", 2, 5, AddressingMode::Indirect_Y)), // +1 if page crossed
+
+        (0xE9, OpCode::new(0xE9, "SBC", 2, 2, AddressingMode::Immediate)),
+        (0xE5, OpCode::new(0xE5, "SBC", 2, 3, AddressingMode::ZeroPage)),
+        (0xF5, OpCode::new(0xF5, "SBC", 2, 4, AddressingMode::ZeroPage_X)),
+        (0xED, OpCode::new(0xED, "SBC", 3, 4, AddressingMode::Absolute)),
+        (0xFD, OpCode::new(0xFD, "SBC", 3, 4, AddressingMode::Absolute_X)), // +1 if page crossed
+        (0xF9, OpCode::new(0xF9, "SBC", 3, 4, AddressingMode::Absolute_Y)), // +1 if page crossed
+        (0xE1, OpCode::new(0xE1, "SBC", 2, 6, AddressingMode::Indirect_X)),
+        (0xF1, OpCode::new(0xF1, "SBC", 2, 5, AddressingMode::Indirect_Y)), // +1 if page crossed
+
+        (0x85, OpCode::new(0x85, "STA", 2, 3, AddressingMode::ZeroPage)),
+        (0x95, OpCode::new(0x95, "STA", 2, 4, AddressingMode::ZeroPage_X)),
+        (0x8D, OpCode::new(0x8D, "STA", 3, 4, AddressingMode::Absolute)),
+        (0x9D, OpCode::new(0x9D, "STA", 3, 5, AddressingMode::Absolute_X)),
+        (0x99, OpCode::new(0x99, "STA", 3, 5, AddressingMode::Absolute_Y)),
+        (0x81, OpCode::new(0x81, "STA", 2, 6, AddressingMode::Indirect_X)),
+        (0x91, OpCode::new(0x91, "STA", 2, 6, AddressingMode::Indirect_Y)),
+
+        (0xAA, OpCode::new(0xAA, "TAX", 1, 2, AddressingMode::NoneAddressing)),
+
+        (0xE8, OpCode::new(0xE8, "INX", 1, 2, AddressingMode::NoneAddressing))
+    ]);
 }
 
 pub struct CPU {
@@ -39,44 +105,44 @@ impl CPU {
     }
 
     // returns (address, number of PC bytes consumed)
-    fn get_operand_address(&self, mode: &AddressingMode) -> (u16, u16) {
+    fn get_operand_address(&self, mode: &AddressingMode) -> u16 {
         match mode {
-            AddressingMode::Immediate => (self.program_counter, 1),
-            AddressingMode::ZeroPage => (self.mem_read(self.program_counter) as u16, 1),
+            AddressingMode::Immediate => self.program_counter + 1,
+            AddressingMode::ZeroPage => self.mem_read(self.program_counter + 1) as u16,
             AddressingMode::ZeroPage_X => {
-                let pos = self.mem_read(self.program_counter);
+                let pos = self.mem_read(self.program_counter + 1);
                 let addr = pos.wrapping_add(self.register_x) as u16;
-                (addr, 1)
+                addr
             }
             AddressingMode::ZeroPage_Y => {
-                let pos = self.mem_read(self.program_counter);
+                let pos = self.mem_read(self.program_counter + 1);
                 let addr = pos.wrapping_add(self.register_y) as u16;
-                (addr, 1)
+                addr
             }
-            AddressingMode::Absolute => (self.mem_read_u16(self.program_counter), 2),
+            AddressingMode::Absolute => self.mem_read_u16(self.program_counter + 1),
             AddressingMode::Absolute_X => {
-                let pos = self.mem_read_u16(self.program_counter);
+                let pos = self.mem_read_u16(self.program_counter + 1);
                 let addr = pos.wrapping_add(self.register_x as u16);
-                (addr, 2)
+                addr
             }
             AddressingMode::Absolute_Y => {
-                let pos = self.mem_read_u16(self.program_counter);
+                let pos = self.mem_read_u16(self.program_counter + 1);
                 let addr = pos.wrapping_add(self.register_y as u16);
-                (addr, 2)
+                addr
             }
             AddressingMode::Indirect_X => {
-                let base = self.mem_read(self.program_counter);
+                let base = self.mem_read(self.program_counter + 1);
                 let ptr: u8 = base.wrapping_add(self.register_x);
                 let lo = self.mem_read(ptr as u16);
                 let hi = self.mem_read(ptr.wrapping_add(1) as u16);
-                ((hi as u16) << 8 | (lo as u16), 1)
+                (hi as u16) << 8 | (lo as u16)
             }
             AddressingMode::Indirect_Y => {
-                let base = self.mem_read(self.program_counter);
+                let base = self.mem_read(self.program_counter + 1);
                 let ptr: u8 = base.wrapping_add(self.register_y);
                 let lo = self.mem_read(ptr as u16);
                 let hi = self.mem_read(ptr.wrapping_add(1) as u16);
-                ((hi as u16) << 8 | (lo as u16), 1)
+                (hi as u16) << 8 | (lo as u16)
             }
             AddressingMode::NoneAddressing => panic!("mode {:?} is not supported", mode),
         }
@@ -122,29 +188,31 @@ impl CPU {
         self.mem_write_u16(0xFFFC, 0x8000);
     }
 
-    fn lda(&mut self, mode: &AddressingMode) {
-        let (addr, pc_increment) = self.get_operand_address(&mode);
+    fn lda(&mut self, opcode: &OpCode) {
+        let addr = self.get_operand_address(&opcode.mode);
         let value = self.mem_read(addr);
 
         self.register_a = value;
         self.update_zero_and_negative_flags(self.register_a);
-        self.program_counter += pc_increment;
+        self.program_counter += &opcode.length;
     }
 
-    fn sta(&mut self, mode: &AddressingMode) {
-        let (addr, pc_increment) = self.get_operand_address(&mode);
+    fn sta(&mut self, opcode: &OpCode) {
+        let addr = self.get_operand_address(&opcode.mode);
         self.mem_write(addr, self.register_a);
-        self.program_counter += pc_increment;
+        self.program_counter += opcode.length;
     }
 
-    fn tax(&mut self) {
+    fn tax(&mut self, opcode: &OpCode) {
         self.register_x = self.register_a;
         self.update_zero_and_negative_flags(self.register_x);
+        self.program_counter += opcode.length;
     }
 
-    fn inx(&mut self) {
+    fn inx(&mut self, opcode: &OpCode) {
         self.register_x = self.register_x.wrapping_add(1);
         self.update_zero_and_negative_flags(self.register_x);
+        self.program_counter += opcode.length;
     }
 
     fn update_zero_and_negative_flags(&mut self, result: u8) {
@@ -164,33 +232,17 @@ impl CPU {
 
     pub fn run(&mut self) {
         loop {
-            let opcode = self.mem_read(self.program_counter);
-            self.program_counter += 1;
+            let byte = self.mem_read(self.program_counter);
+            let opcode = CPU_OPCODES
+                .get(&byte)
+                .expect(format!("opcode {:X} not found", byte).as_str());
 
-            match opcode {
-                // BRK
-                0x00 => return,
-                // LDA
-                0xA9 => self.lda(&AddressingMode::Immediate),
-                0xA5 => self.lda(&AddressingMode::ZeroPage),
-                0xB5 => self.lda(&AddressingMode::ZeroPage_X),
-                0xAD => self.lda(&AddressingMode::Absolute),
-                0xBD => self.lda(&AddressingMode::Absolute_X),
-                0xB9 => self.lda(&AddressingMode::Absolute_Y),
-                0xA1 => self.lda(&AddressingMode::Indirect_X),
-                0xB1 => self.lda(&AddressingMode::Indirect_Y),
-                // STA
-                0x85 => self.sta(&AddressingMode::ZeroPage),
-                0x95 => self.sta(&AddressingMode::ZeroPage_X),
-                0x8D => self.sta(&AddressingMode::Absolute),
-                0x9D => self.sta(&AddressingMode::Absolute_X),
-                0x99 => self.sta(&AddressingMode::Absolute_Y),
-                0x81 => self.sta(&AddressingMode::Indirect_X),
-                0x91 => self.sta(&AddressingMode::Indirect_Y),
-                // TAX
-                0xAA => self.tax(),
-                // INX
-                0xE8 => self.inx(),
+            match &*opcode.name.to_lowercase() {
+                "brk" => return,
+                "lda" => self.lda(opcode),
+                "sta" => self.sta(opcode),
+                "tax" => self.tax(opcode),
+                "inx" => self.inx(opcode),
                 _ => todo!("opcode not implemented"),
             }
         }
