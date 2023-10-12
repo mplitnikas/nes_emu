@@ -5,7 +5,7 @@ fn main() {
     println!("Hello, world!");
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 #[allow(non_camel_case_types)]
 pub enum AddressingMode {
     Immediate,
@@ -303,7 +303,7 @@ impl CPU {
                 let hi = self.mem_read(ptr.wrapping_add(1) as u16);
                 (hi as u16) << 8 | (lo as u16)
             }
-            AddressingMode::NoneAddressing => panic!("mode {:?} is not supported", mode),
+            AddressingMode::NoneAddressing => 0,
         }
     }
 
@@ -352,11 +352,37 @@ impl CPU {
     }
 
     fn and(&mut self, opcode: &OpCode) {
-        todo!()
+        let addr = self.get_operand_address(&opcode.mode);
+        let value = self.mem_read(addr);
+
+        self.register_a &= value;
+        self.update_zero_and_negative_flags(self.register_a);
+        self.program_counter += opcode.length;
     }
 
     fn asl(&mut self, opcode: &OpCode) {
-        todo!()
+        if opcode.mode == AddressingMode::NoneAddressing {
+            if self.register_a & 0b1000_0000 != 0 {
+                self.update_carry_flag(true);
+            } else {
+                self.update_carry_flag(false);
+            }
+            self.register_a = self.register_a << 1;
+            self.update_zero_and_negative_flags(self.register_a);
+        } else {
+            let addr = self.get_operand_address(&opcode.mode);
+            let value = self.mem_read(addr);
+
+            if value & 0b1000_0000 != 0 {
+                self.update_carry_flag(true);
+            } else {
+                self.update_carry_flag(false);
+            }
+            let result = value << 1;
+            self.mem_write(addr, result);
+            self.update_zero_and_negative_flags(result);
+        }
+        self.program_counter += opcode.length;
     }
 
     fn bcc(&mut self, opcode: &OpCode) {
@@ -596,6 +622,14 @@ impl CPU {
             self.status |= 0b1000_0000;
         } else {
             self.status &= 0b0111_1111;
+        }
+    }
+
+    fn update_carry_flag(&mut self, carry: bool) {
+        if carry {
+            self.status |= 0b0000_0001;
+        } else {
+            self.status &= 0b1111_1110;
         }
     }
 
