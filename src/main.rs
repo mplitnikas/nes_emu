@@ -673,7 +673,221 @@ impl CPU {
 mod test {
     use super::*;
 
-    // LDA
+    fn setup() -> CPU {
+        CPU::new()
+    }
+
+    #[test]
+    fn test_adc() {
+        return;
+    }
+
+    #[test]
+    fn test_and() {
+        let mut cpu = CPU::new();
+        cpu.load(vec![0x29, 0x0F]);
+        cpu.reset();
+        cpu.register_a = 0x11;
+        cpu.run();
+
+        assert_eq!(cpu.register_a, 0x01);
+        assert_eq!(cpu.status, 0b0000_0000);
+    }
+
+    #[test]
+    fn test_asl_register() {
+        let mut cpu = CPU::new();
+        cpu.load(vec![0x0A]);
+        cpu.reset();
+        cpu.register_a = 0b1000_0001;
+        cpu.run();
+
+        assert_eq!(cpu.register_a, 0b0000_0010);
+        assert_eq!(cpu.status, 0b0000_0001);
+    }
+    #[test]
+    fn test_asl_memory() {
+        let mut cpu = CPU::new();
+        cpu.mem_write(0xC0, 0b1000_0001);
+        cpu.load(vec![0x06, 0xC0]);
+        cpu.reset();
+        cpu.run();
+
+        assert_eq!(cpu.mem_read(0xC0), 0b0000_0010);
+        assert_eq!(cpu.status, 0b0000_0001);
+    }
+
+    #[test]
+    fn test_bcc() {
+        return;
+    }
+
+    #[test]
+    fn test_bcs() {
+        return;
+    }
+
+    #[test]
+    fn test_beq() {
+        return;
+    }
+
+    #[test]
+    fn test_bit() {
+        return;
+    }
+
+    #[test]
+    fn test_bmi() {
+        return;
+    }
+
+    #[test]
+    fn test_bne() {
+        return;
+    }
+
+    #[test]
+    fn test_bpl() {
+        return;
+    }
+
+    #[test]
+    fn test_brk() {
+        return;
+    }
+
+    #[test]
+    fn test_bvc() {
+        return;
+    }
+
+    #[test]
+    fn test_bvs() {
+        return;
+    }
+
+    #[test]
+    fn test_clc() {
+        return;
+    }
+
+    #[test]
+    fn test_cld() {
+        return;
+    }
+
+    #[test]
+    fn test_cli() {
+        return;
+    }
+
+    #[test]
+    fn test_clv() {
+        return;
+    }
+
+    #[test]
+    fn test_cmp() {
+        return;
+    }
+
+    #[test]
+    fn test_cpx() {
+        return;
+    }
+
+    #[test]
+    fn test_cpy() {
+        return;
+    }
+
+    #[test]
+    fn test_dec() {
+        return;
+    }
+
+    #[test]
+    fn test_dex() {
+        return;
+    }
+
+    #[test]
+    fn test_dey() {
+        return;
+    }
+
+    #[test]
+    fn test_eor() {
+        return;
+    }
+
+    #[test]
+    fn test_inc() {
+        return;
+    }
+
+    // INX
+    #[test]
+    fn test_inx() {
+        let mut cpu = CPU::new();
+        cpu.load(vec![0xE8, 0x00]);
+        cpu.reset();
+        cpu.register_x = 0x1C;
+        cpu.run();
+
+        assert_eq!(cpu.register_x, 0x1D);
+        assert_eq!(cpu.status, 0b0000_0000);
+    }
+    #[test]
+    fn test_inx_set_negative_flag() {
+        let mut cpu = CPU::new();
+        cpu.load(vec![0xE8, 0x00]);
+        cpu.reset();
+        cpu.register_x = 0xF4;
+        cpu.run();
+
+        assert_eq!(cpu.register_x, 0xF5);
+        assert_eq!(cpu.status, 0b1000_0000);
+    }
+    #[test]
+    fn test_inx_set_zero_flag() {
+        let mut cpu = CPU::new();
+        cpu.load(vec![0xE8, 0x00]);
+        cpu.reset();
+        cpu.register_x = 0xFF;
+        cpu.run();
+
+        assert_eq!(cpu.register_x, 0x00);
+        assert_eq!(cpu.status, 0b0000_0010);
+    }
+    #[test]
+    fn test_inx_overflow() {
+        let mut cpu = CPU::new();
+        cpu.load(vec![0xE8, 0xE8, 0x00]);
+        cpu.reset();
+        cpu.register_x = 0xFF;
+        cpu.run();
+
+        assert_eq!(cpu.register_x, 1)
+    }
+
+    #[test]
+    fn test_iny() {
+        return;
+    }
+
+    #[test]
+    fn test_jmp() {
+        return;
+    }
+
+    #[test]
+    fn test_jsr() {
+        return;
+    }
+
+    // LDA (also tests all addressing modes)
     #[test]
     fn test_lda_sets_zero_flag() {
         let mut cpu = CPU::new();
@@ -789,6 +1003,91 @@ mod test {
         assert_eq!(cpu.status, 0b0000_0000);
     }
 
+    #[test]
+    fn test_ldx() {
+        return;
+    }
+
+    #[test]
+    fn test_ldy() {
+        return;
+    }
+
+    #[test]
+    fn test_lsr() {
+        return;
+    }
+
+    #[test]
+    fn test_nop() {
+        return;
+    }
+
+    #[test]
+    fn test_ora() {
+        return;
+    }
+
+    #[test]
+    fn test_pha() {
+        return;
+    }
+
+    #[test]
+    fn test_php() {
+        return;
+    }
+
+    #[test]
+    fn test_pla() {
+        return;
+    }
+
+    #[test]
+    fn test_plp() {
+        return;
+    }
+
+    #[test]
+    fn test_rol() {
+        return;
+    }
+
+    #[test]
+    fn test_ror() {
+        return;
+    }
+
+    #[test]
+    fn test_rti() {
+        return;
+    }
+
+    #[test]
+    fn test_rts() {
+        return;
+    }
+
+    #[test]
+    fn test_sbc() {
+        return;
+    }
+
+    #[test]
+    fn test_sec() {
+        return;
+    }
+
+    #[test]
+    fn test_sed() {
+        return;
+    }
+
+    #[test]
+    fn test_sei() {
+        return;
+    }
+
     // STA
     #[test]
     fn test_sta_zero_page() {
@@ -873,11 +1172,21 @@ mod test {
         assert_eq!(cpu.status, 0b0000_0000);
     }
 
+    #[test]
+    fn test_stx() {
+        return;
+    }
+
+    #[test]
+    fn test_sty() {
+        return;
+    }
+
     // TAX
     #[test]
     fn test_tax() {
         let mut cpu = CPU::new();
-        cpu.load(vec![0xAA, 0x00]);
+        cpu.load(vec![0xAA]);
         cpu.reset();
         cpu.register_a = 0x1C;
         cpu.run();
@@ -888,7 +1197,7 @@ mod test {
     #[test]
     fn test_tax_transfer_zero() {
         let mut cpu = CPU::new();
-        cpu.load(vec![0xAA, 0x00]);
+        cpu.load(vec![0xAA]);
         cpu.reset();
         cpu.register_a = 0x00;
         cpu.run();
@@ -899,7 +1208,7 @@ mod test {
     #[test]
     fn test_tax_transfer_negative() {
         let mut cpu = CPU::new();
-        cpu.load(vec![0xAA, 0x00]);
+        cpu.load(vec![0xAA]);
         cpu.reset();
         cpu.register_a = 0xF4;
         cpu.run();
@@ -908,49 +1217,36 @@ mod test {
         assert_eq!(cpu.status, 0b1000_0000);
     }
 
-    // INX
     #[test]
-    fn test_inx() {
+    fn test_tay() {
         let mut cpu = CPU::new();
-        cpu.load(vec![0xE8, 0x00]);
+        cpu.load(vec![0xA8]);
         cpu.reset();
-        cpu.register_x = 0x1C;
+        cpu.register_a = 0x1C;
         cpu.run();
 
-        assert_eq!(cpu.register_x, 0x1D);
+        assert_eq!(cpu.register_y, 0x1C);
         assert_eq!(cpu.status, 0b0000_0000);
     }
-    #[test]
-    fn test_inx_set_negative_flag() {
-        let mut cpu = CPU::new();
-        cpu.load(vec![0xE8, 0x00]);
-        cpu.reset();
-        cpu.register_x = 0xF4;
-        cpu.run();
 
-        assert_eq!(cpu.register_x, 0xF5);
-        assert_eq!(cpu.status, 0b1000_0000);
+    #[test]
+    fn test_tsx() {
+        return;
     }
-    #[test]
-    fn test_inx_set_zero_flag() {
-        let mut cpu = CPU::new();
-        cpu.load(vec![0xE8, 0x00]);
-        cpu.reset();
-        cpu.register_x = 0xFF;
-        cpu.run();
 
-        assert_eq!(cpu.register_x, 0x00);
-        assert_eq!(cpu.status, 0b0000_0010);
+    #[test]
+    fn test_txa() {
+        return;
     }
-    #[test]
-    fn test_inx_overflow() {
-        let mut cpu = CPU::new();
-        cpu.load(vec![0xE8, 0xE8, 0x00]);
-        cpu.reset();
-        cpu.register_x = 0xFF;
-        cpu.run();
 
-        assert_eq!(cpu.register_x, 1)
+    #[test]
+    fn test_txs() {
+        return;
+    }
+
+    #[test]
+    fn test_tya() {
+        return;
     }
 
     // integration, misc
