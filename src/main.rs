@@ -242,6 +242,7 @@ pub struct CPU {
     pub register_y: u8,
     pub status: u8,
     pub program_counter: u16,
+    pub stack_pointer: u8,
     memory: [u8; 0xFFFF],
 }
 
@@ -253,9 +254,12 @@ impl CPU {
             register_y: 0,
             status: 0, // NV_BDIZC
             program_counter: 0,
+            stack_pointer: 0xFF,
             memory: [0; 0xFFFF],
         }
     }
+
+    pub const STACK_ADDRESS: u16 = 0x0100;
 
     // returns (address, number of PC bytes consumed)
     fn get_operand_address(&self, mode: &AddressingMode) -> u16 {
@@ -334,6 +338,7 @@ impl CPU {
         self.register_y = 0;
         self.status = 0;
         self.program_counter = self.mem_read_u16(0xFFFC);
+        self.stack_pointer = 0xFF;
     }
 
     pub fn load_and_run(&mut self, program: Vec<u8>) {
@@ -346,6 +351,8 @@ impl CPU {
         self.memory[0x8000..(0x8000 + program.len())].copy_from_slice(&program[..]);
         self.mem_write_u16(0xFFFC, 0x8000);
     }
+
+    // instructions
 
     fn adc(&mut self, opcode: &OpCode) {
         todo!()
@@ -398,7 +405,12 @@ impl CPU {
     }
 
     fn bit(&mut self, opcode: &OpCode) {
-        todo!();
+        let addr = self.get_operand_address(&opcode.mode);
+        let value = self.mem_read(addr);
+
+        let result = self.register_a & value;
+        self.update_zero_and_negative_flags(result);
+        self.status |= 0b1100_0000;
     }
 
     fn bmi(&mut self, opcode: &OpCode) {
@@ -428,51 +440,113 @@ impl CPU {
     }
 
     fn clc(&mut self, opcode: &OpCode) {
-        todo!()
+        self.update_carry_flag(false);
+        self.program_counter += opcode.length;
     }
 
     fn cld(&mut self, opcode: &OpCode) {
-        todo!()
+        self.status &= 0b1111_0111;
+        self.program_counter += opcode.length;
     }
 
     fn cli(&mut self, opcode: &OpCode) {
-        todo!()
+        self.status &= 0b1111_1011;
+        self.program_counter += opcode.length;
     }
 
     fn clv(&mut self, opcode: &OpCode) {
-        todo!()
+        self.status &= 0b1011_1111;
+        self.program_counter += opcode.length;
     }
 
     fn cmp(&mut self, opcode: &OpCode) {
-        todo!()
+        let addr = self.get_operand_address(&opcode.mode);
+        let value = self.mem_read(addr);
+
+        if self.register_a >= value {
+            self.update_carry_flag(true);
+        } else {
+            self.update_carry_flag(false);
+        }
+
+        // get result for setting flags, but don't use it
+        let result = self.register_a.wrapping_sub(value);
+        self.update_zero_and_negative_flags(result);
+
+        self.program_counter += opcode.length;
     }
 
     fn cpx(&mut self, opcode: &OpCode) {
-        todo!()
+        let addr = self.get_operand_address(&opcode.mode);
+        let value = self.mem_read(addr);
+
+        if self.register_x >= value {
+            self.update_carry_flag(true);
+        } else {
+            self.update_carry_flag(false);
+        }
+
+        // get result for setting flags, but don't use it
+        let result = self.register_x.wrapping_sub(value);
+        self.update_zero_and_negative_flags(result);
+
+        self.program_counter += opcode.length;
     }
 
     fn cpy(&mut self, opcode: &OpCode) {
-        todo!()
+        let addr = self.get_operand_address(&opcode.mode);
+        let value = self.mem_read(addr);
+
+        if self.register_y >= value {
+            self.update_carry_flag(true);
+        } else {
+            self.update_carry_flag(false);
+        }
+
+        // get result for setting flags, but don't use it
+        let result = self.register_y.wrapping_sub(value);
+        self.update_zero_and_negative_flags(result);
+
+        self.program_counter += opcode.length;
     }
 
     fn dec(&mut self, opcode: &OpCode) {
-        todo!()
+        let addr = self.get_operand_address(&opcode.mode);
+        let value = self.mem_read(addr);
+
+        self.mem_write(addr, value.wrapping_sub(1));
+        self.update_zero_and_negative_flags(value);
+        self.program_counter += opcode.length;
     }
 
     fn dex(&mut self, opcode: &OpCode) {
-        todo!()
+        self.register_x = self.register_x.wrapping_sub(1);
+        self.update_zero_and_negative_flags(self.register_x);
+        self.program_counter += opcode.length;
     }
 
     fn dey(&mut self, opcode: &OpCode) {
-        todo!()
+        self.register_y = self.register_y.wrapping_sub(1);
+        self.update_zero_and_negative_flags(self.register_y);
+        self.program_counter += opcode.length;
     }
 
     fn eor(&mut self, opcode: &OpCode) {
-        todo!()
+        let addr = self.get_operand_address(&opcode.mode);
+        let value = self.mem_read(addr);
+
+        self.register_a ^= value;
+        self.update_zero_and_negative_flags(self.register_a);
+        self.program_counter += opcode.length;
     }
 
     fn inc(&mut self, opcode: &OpCode) {
-        todo!()
+        let addr = self.get_operand_address(&opcode.mode);
+        let value = self.mem_read(addr);
+
+        self.mem_write(addr, value.wrapping_add(1));
+        self.update_zero_and_negative_flags(value);
+        self.program_counter += opcode.length;
     }
 
     fn inx(&mut self, opcode: &OpCode) {
@@ -482,11 +556,16 @@ impl CPU {
     }
 
     fn iny(&mut self, opcode: &OpCode) {
-        todo!()
+        self.register_y = self.register_y.wrapping_add(1);
+        self.update_zero_and_negative_flags(self.register_y);
+        self.program_counter += opcode.length;
     }
 
     fn jmp(&mut self, opcode: &OpCode) {
-        todo!()
+        let addr = self.get_operand_address(&opcode.mode);
+        let value = self.mem_read(addr);
+
+        self.program_counter = value as u16;
     }
 
     fn jsr(&mut self, opcode: &OpCode) {
@@ -503,39 +582,86 @@ impl CPU {
     }
 
     fn ldx(&mut self, opcode: &OpCode) {
-        todo!()
+        let addr = self.get_operand_address(&opcode.mode);
+        let value = self.mem_read(addr);
+
+        self.register_x = value;
+        self.update_zero_and_negative_flags(self.register_x);
+        self.program_counter += &opcode.length;
     }
 
     fn ldy(&mut self, opcode: &OpCode) {
-        todo!()
+        let addr = self.get_operand_address(&opcode.mode);
+        let value = self.mem_read(addr);
+
+        self.register_y = value;
+        self.update_zero_and_negative_flags(self.register_y);
+        self.program_counter += &opcode.length;
     }
 
     fn lsr(&mut self, opcode: &OpCode) {
-        todo!()
+        if opcode.mode == AddressingMode::NoneAddressing {
+            if self.register_a & 0b0000_0001 != 0 {
+                self.update_carry_flag(true);
+            } else {
+                self.update_carry_flag(false);
+            }
+            self.register_a = self.register_a >> 1;
+            self.update_zero_and_negative_flags(self.register_a);
+        } else {
+            let addr = self.get_operand_address(&opcode.mode);
+            let value = self.mem_read(addr);
+
+            if value & 0b0000_0001 != 0 {
+                self.update_carry_flag(true);
+            } else {
+                self.update_carry_flag(false);
+            }
+            let result = value >> 1;
+            self.mem_write(addr, result);
+            self.update_zero_and_negative_flags(result);
+        }
+        self.program_counter += opcode.length;
     }
 
     fn nop(&mut self, opcode: &OpCode) {
-        todo!()
+        self.program_counter += opcode.length;
     }
 
     fn ora(&mut self, opcode: &OpCode) {
-        todo!()
+        let addr = self.get_operand_address(&opcode.mode);
+        let value = self.mem_read(addr);
+
+        self.register_a |= value;
+        self.update_zero_and_negative_flags(self.register_a);
+        self.program_counter += opcode.length;
     }
 
     fn pha(&mut self, opcode: &OpCode) {
-        todo!()
+        self.mem_write(
+            CPU::STACK_ADDRESS + self.stack_pointer as u16,
+            self.register_a,
+        );
+        self.stack_pointer -= 1;
+        self.program_counter += opcode.length;
     }
 
     fn php(&mut self, opcode: &OpCode) {
-        todo!()
+        self.mem_write(CPU::STACK_ADDRESS + self.stack_pointer as u16, self.status);
+        self.stack_pointer -= 1;
+        self.program_counter += opcode.length;
     }
 
     fn pla(&mut self, opcode: &OpCode) {
-        todo!()
+        self.register_a = self.mem_read(CPU::STACK_ADDRESS + self.stack_pointer as u16);
+        self.stack_pointer += 1;
+        self.program_counter += opcode.length;
     }
 
     fn plp(&mut self, opcode: &OpCode) {
-        todo!()
+        self.status = self.mem_read(CPU::STACK_ADDRESS + self.stack_pointer as u16);
+        self.stack_pointer += 1;
+        self.program_counter += opcode.length;
     }
 
     fn rol(&mut self, opcode: &OpCode) {
