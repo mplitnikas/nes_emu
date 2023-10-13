@@ -719,15 +719,18 @@ impl CPU {
     }
 
     fn sec(&mut self, opcode: &OpCode) {
-        todo!()
+        self.set_carry_flag(true);
+        self.program_counter += opcode.length;
     }
 
     fn sed(&mut self, opcode: &OpCode) {
-        todo!()
+        self.status |= 0b0000_1000;
+        self.program_counter += opcode.length;
     }
 
     fn sei(&mut self, opcode: &OpCode) {
-        todo!()
+        self.status |= 0b0000_0100;
+        self.program_counter += opcode.length;
     }
 
     fn sta(&mut self, opcode: &OpCode) {
@@ -737,11 +740,15 @@ impl CPU {
     }
 
     fn stx(&mut self, opcode: &OpCode) {
-        todo!()
+        let addr = self.get_operand_address(&opcode.mode);
+        self.mem_write(addr, self.register_x);
+        self.program_counter += opcode.length;
     }
 
     fn sty(&mut self, opcode: &OpCode) {
-        todo!()
+        let addr = self.get_operand_address(&opcode.mode);
+        self.mem_write(addr, self.register_y);
+        self.program_counter += opcode.length;
     }
 
     fn tax(&mut self, opcode: &OpCode) {
@@ -757,19 +764,31 @@ impl CPU {
     }
 
     fn tsx(&mut self, opcode: &OpCode) {
-        todo!()
+        let value = self.mem_read(CPU::STACK_ADDRESS + self.stack_pointer as u16);
+        self.register_x = value;
+        self.stack_pointer += 1;
+        self.program_counter += opcode.length;
     }
 
     fn txa(&mut self, opcode: &OpCode) {
-        todo!()
+        self.register_a = self.register_x;
+        self.update_zero_and_negative_flags(self.register_a);
+        self.program_counter += opcode.length;
     }
 
     fn txs(&mut self, opcode: &OpCode) {
-        todo!()
+        self.mem_write(
+            CPU::STACK_ADDRESS + self.stack_pointer as u16,
+            self.register_x,
+        );
+        self.stack_pointer -= 1;
+        self.program_counter += opcode.length;
     }
 
     fn tya(&mut self, opcode: &OpCode) {
-        todo!()
+        self.register_a = self.register_y;
+        self.update_zero_and_negative_flags(self.register_a);
+        self.program_counter += opcode.length;
     }
 
     fn update_zero_and_negative_flags(&mut self, result: u8) {
