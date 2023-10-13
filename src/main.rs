@@ -370,9 +370,9 @@ impl CPU {
     fn asl(&mut self, opcode: &OpCode) {
         if opcode.mode == AddressingMode::NoneAddressing {
             if self.register_a & 0b1000_0000 != 0 {
-                self.update_carry_flag(true);
+                self.set_carry_flag(true);
             } else {
-                self.update_carry_flag(false);
+                self.set_carry_flag(false);
             }
             self.register_a = self.register_a << 1;
             self.update_zero_and_negative_flags(self.register_a);
@@ -381,9 +381,9 @@ impl CPU {
             let value = self.mem_read(addr);
 
             if value & 0b1000_0000 != 0 {
-                self.update_carry_flag(true);
+                self.set_carry_flag(true);
             } else {
-                self.update_carry_flag(false);
+                self.set_carry_flag(false);
             }
             let result = value << 1;
             self.mem_write(addr, result);
@@ -440,7 +440,7 @@ impl CPU {
     }
 
     fn clc(&mut self, opcode: &OpCode) {
-        self.update_carry_flag(false);
+        self.set_carry_flag(false);
         self.program_counter += opcode.length;
     }
 
@@ -464,9 +464,9 @@ impl CPU {
         let value = self.mem_read(addr);
 
         if self.register_a >= value {
-            self.update_carry_flag(true);
+            self.set_carry_flag(true);
         } else {
-            self.update_carry_flag(false);
+            self.set_carry_flag(false);
         }
 
         // get result for setting flags, but don't use it
@@ -481,9 +481,9 @@ impl CPU {
         let value = self.mem_read(addr);
 
         if self.register_x >= value {
-            self.update_carry_flag(true);
+            self.set_carry_flag(true);
         } else {
-            self.update_carry_flag(false);
+            self.set_carry_flag(false);
         }
 
         // get result for setting flags, but don't use it
@@ -498,9 +498,9 @@ impl CPU {
         let value = self.mem_read(addr);
 
         if self.register_y >= value {
-            self.update_carry_flag(true);
+            self.set_carry_flag(true);
         } else {
-            self.update_carry_flag(false);
+            self.set_carry_flag(false);
         }
 
         // get result for setting flags, but don't use it
@@ -602,9 +602,9 @@ impl CPU {
     fn lsr(&mut self, opcode: &OpCode) {
         if opcode.mode == AddressingMode::NoneAddressing {
             if self.register_a & 0b0000_0001 != 0 {
-                self.update_carry_flag(true);
+                self.set_carry_flag(true);
             } else {
-                self.update_carry_flag(false);
+                self.set_carry_flag(false);
             }
             self.register_a = self.register_a >> 1;
             self.update_zero_and_negative_flags(self.register_a);
@@ -613,9 +613,9 @@ impl CPU {
             let value = self.mem_read(addr);
 
             if value & 0b0000_0001 != 0 {
-                self.update_carry_flag(true);
+                self.set_carry_flag(true);
             } else {
-                self.update_carry_flag(false);
+                self.set_carry_flag(false);
             }
             let result = value >> 1;
             self.mem_write(addr, result);
@@ -669,7 +669,7 @@ impl CPU {
             let carry = self.register_a & 0b1000_0000 != 0;
             self.register_a = self.register_a << 1;
             self.register_a |= self.status & 0b0000_0001;
-            self.update_carry_flag(carry);
+            self.set_carry_flag(carry);
             self.update_zero_and_negative_flags(self.register_a);
         } else {
             let addr = self.get_operand_address(&opcode.mode);
@@ -679,7 +679,7 @@ impl CPU {
             let mut result = value << 1;
             result |= self.status & 0b0000_0001;
             self.mem_write(addr, result);
-            self.update_carry_flag(carry);
+            self.set_carry_flag(carry);
             self.update_zero_and_negative_flags(result);
         }
         self.program_counter += opcode.length;
@@ -690,7 +690,7 @@ impl CPU {
             let carry = self.register_a & 0b0000_0001 != 0;
             self.register_a = self.register_a >> 1;
             self.register_a |= (self.status & 0b0000_0001) << 8;
-            self.update_carry_flag(carry);
+            self.set_carry_flag(carry);
             self.update_zero_and_negative_flags(self.register_a);
         } else {
             let addr = self.get_operand_address(&opcode.mode);
@@ -700,7 +700,7 @@ impl CPU {
             let mut result = value >> 1;
             result |= (self.status & 0b0000_0001) << 8;
             self.mem_write(addr, result);
-            self.update_carry_flag(carry);
+            self.set_carry_flag(carry);
             self.update_zero_and_negative_flags(result);
         }
         self.program_counter += opcode.length;
@@ -787,7 +787,7 @@ impl CPU {
         }
     }
 
-    fn update_carry_flag(&mut self, carry: bool) {
+    fn set_carry_flag(&mut self, carry: bool) {
         if carry {
             self.status |= 0b0000_0001;
         } else {
