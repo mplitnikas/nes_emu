@@ -665,11 +665,45 @@ impl CPU {
     }
 
     fn rol(&mut self, opcode: &OpCode) {
-        todo!()
+        if opcode.mode == AddressingMode::NoneAddressing {
+            let carry = self.register_a & 0b1000_0000 != 0;
+            self.register_a = self.register_a << 1;
+            self.register_a |= self.status & 0b0000_0001;
+            self.update_carry_flag(carry);
+            self.update_zero_and_negative_flags(self.register_a);
+        } else {
+            let addr = self.get_operand_address(&opcode.mode);
+            let value = self.mem_read(addr);
+
+            let carry = value & 0b1000_0000 != 0;
+            let mut result = value << 1;
+            result |= self.status & 0b0000_0001;
+            self.mem_write(addr, result);
+            self.update_carry_flag(carry);
+            self.update_zero_and_negative_flags(result);
+        }
+        self.program_counter += opcode.length;
     }
 
     fn ror(&mut self, opcode: &OpCode) {
-        todo!()
+        if opcode.mode == AddressingMode::NoneAddressing {
+            let carry = self.register_a & 0b0000_0001 != 0;
+            self.register_a = self.register_a >> 1;
+            self.register_a |= (self.status & 0b0000_0001) << 8;
+            self.update_carry_flag(carry);
+            self.update_zero_and_negative_flags(self.register_a);
+        } else {
+            let addr = self.get_operand_address(&opcode.mode);
+            let value = self.mem_read(addr);
+
+            let carry = value & 0b0000_0001 != 0;
+            let mut result = value >> 1;
+            result |= (self.status & 0b0000_0001) << 8;
+            self.mem_write(addr, result);
+            self.update_carry_flag(carry);
+            self.update_zero_and_negative_flags(result);
+        }
+        self.program_counter += opcode.length;
     }
 
     fn rti(&mut self, opcode: &OpCode) {
