@@ -261,7 +261,6 @@ impl CPU {
 
     pub const STACK_ADDRESS: u16 = 0x0100;
 
-    // returns (address, number of PC bytes consumed)
     fn get_operand_address(&self, mode: &AddressingMode) -> u16 {
         match mode {
             AddressingMode::Immediate => self.program_counter + 1,
@@ -355,7 +354,17 @@ impl CPU {
     // instructions
 
     fn adc(&mut self, opcode: &OpCode) {
-        todo!()
+        let addr = self.get_operand_address(&opcode.mode);
+        let value = self.mem_read(addr);
+
+        let result = self.register_a as u16 + value as u16 + (self.status & 0b0000_0001) as u16;
+        self.set_carry_flag(result > 0xFF);
+        let result = result as u8;
+        self.set_overflow_flag((self.register_a ^ result) & (value ^ result) & 0b1000_0000 != 0);
+
+        self.register_a = result;
+        self.update_zero_and_negative_flags(result);
+        self.program_counter += opcode.length;
     }
 
     fn and(&mut self, opcode: &OpCode) {
@@ -689,7 +698,7 @@ impl CPU {
         if opcode.mode == AddressingMode::NoneAddressing {
             let carry = self.register_a & 0b0000_0001 != 0;
             self.register_a = self.register_a >> 1;
-            self.register_a |= (self.status & 0b0000_0001) << 8;
+            self.register_a |= (self.status & 0b0000_0001) << 7;
             self.set_carry_flag(carry);
             self.update_zero_and_negative_flags(self.register_a);
         } else {
@@ -698,7 +707,7 @@ impl CPU {
 
             let carry = value & 0b0000_0001 != 0;
             let mut result = value >> 1;
-            result |= (self.status & 0b0000_0001) << 8;
+            result |= (self.status & 0b0000_0001) << 7;
             self.mem_write(addr, result);
             self.set_carry_flag(carry);
             self.update_zero_and_negative_flags(result);
@@ -814,6 +823,14 @@ impl CPU {
         }
     }
 
+    fn set_overflow_flag(&mut self, overflow: bool) {
+        if overflow {
+            self.status |= 0b0100_0000;
+        } else {
+            self.status &= 0b1011_1111;
+        }
+    }
+
     fn branch(&mut self, opcode: &OpCode, conditional: bool) {
         if conditional {
             let addr = self.get_operand_address(&opcode.mode);
@@ -898,13 +915,16 @@ impl CPU {
 mod test {
     use super::*;
 
-    fn setup() -> CPU {
-        CPU::new()
-    }
-
     #[test]
     fn test_adc() {
-        return;
+        let mut cpu = CPU::new();
+        cpu.load(vec![0x69, 0x02]);
+        cpu.reset();
+        cpu.register_a = 0xFF;
+        cpu.run();
+
+        assert_eq!(cpu.register_a, 0x01);
+        assert_eq!(cpu.status, 0b0001_0001);
     }
 
     #[test]
