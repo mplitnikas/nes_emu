@@ -252,7 +252,7 @@ impl CPU {
             register_a: 0,
             register_x: 0,
             register_y: 0,
-            status: 0, // NV_BDIZC
+            status: 0b0010_0000, // NV1B_DIZC
             program_counter: 0,
             stack_pointer: 0xFF,
             memory: [0; 0xFFFF],
@@ -351,16 +351,32 @@ impl CPU {
         self.mem_write_u16(0xFFFC, 0x8000);
     }
 
+    pub fn add(&mut self, value: u8) -> u8 {
+        let result = self.register_a as u16 + value as u16 + (self.status & 0b0000_0001) as u16;
+        self.set_carry_flag(result > 0xFF);
+        let result = result as u8;
+        self.set_overflow_flag((self.register_a ^ result) & (value ^ result) & 0b1000_0000 != 0);
+        result
+    }
+
+    pub fn push_to_stack(&mut self, value: u8) {
+        self.mem_write(CPU::STACK_ADDRESS + self.stack_pointer as u16, value);
+        self.stack_pointer -= 1;
+    }
+
+    pub fn pull_from_stack(&mut self) -> u8 {
+        let value = self.mem_read(CPU::STACK_ADDRESS + self.stack_pointer as u16);
+        self.stack_pointer += 1;
+        value
+    }
+
     // instructions
 
     fn adc(&mut self, opcode: &OpCode) {
         let addr = self.get_operand_address(&opcode.mode);
         let value = self.mem_read(addr);
 
-        let result = self.register_a as u16 + value as u16 + (self.status & 0b0000_0001) as u16;
-        self.set_carry_flag(result > 0xFF);
-        let result = result as u8;
-        self.set_overflow_flag((self.register_a ^ result) & (value ^ result) & 0b1000_0000 != 0);
+        let result = self.add(value);
 
         self.register_a = result;
         self.update_zero_and_negative_flags(result);
@@ -419,7 +435,8 @@ impl CPU {
 
         let result = self.register_a & value;
         self.update_zero_and_negative_flags(result);
-        self.status |= 0b1100_0000;
+        self.status |= value & 0b1100_0000;
+        self.status &= value | 0b1100_0000;
     }
 
     fn bmi(&mut self, opcode: &OpCode) {
@@ -436,7 +453,7 @@ impl CPU {
 
     fn brk(&mut self, opcode: &OpCode) {
         self.program_counter += opcode.length;
-        self.status |= 0b0001_0000;
+        self.set_break_flag(true);
         // TODO: trigger interrupt
     }
 
@@ -454,17 +471,17 @@ impl CPU {
     }
 
     fn cld(&mut self, opcode: &OpCode) {
-        self.status &= 0b1111_0111;
+        self.set_decimal_flag(false);
         self.program_counter += opcode.length;
     }
 
     fn cli(&mut self, opcode: &OpCode) {
-        self.status &= 0b1111_1011;
+        self.set_interrupt_flag(false);
         self.program_counter += opcode.length;
     }
 
     fn clv(&mut self, opcode: &OpCode) {
-        self.status &= 0b1011_1111;
+        self.set_overflow_flag(false);
         self.program_counter += opcode.length;
     }
 
@@ -647,29 +664,22 @@ impl CPU {
     }
 
     fn pha(&mut self, opcode: &OpCode) {
-        self.mem_write(
-            CPU::STACK_ADDRESS + self.stack_pointer as u16,
-            self.register_a,
-        );
-        self.stack_pointer -= 1;
+        self.push_to_stack(self.register_a);
         self.program_counter += opcode.length;
     }
 
     fn php(&mut self, opcode: &OpCode) {
-        self.mem_write(CPU::STACK_ADDRESS + self.stack_pointer as u16, self.status);
-        self.stack_pointer -= 1;
+        self.push_to_stack(self.status);
         self.program_counter += opcode.length;
     }
 
     fn pla(&mut self, opcode: &OpCode) {
-        self.register_a = self.mem_read(CPU::STACK_ADDRESS + self.stack_pointer as u16);
-        self.stack_pointer += 1;
+        self.register_a = self.pull_from_stack();
         self.program_counter += opcode.length;
     }
 
     fn plp(&mut self, opcode: &OpCode) {
-        self.status = self.mem_read(CPU::STACK_ADDRESS + self.stack_pointer as u16);
-        self.stack_pointer += 1;
+        self.status = self.pull_from_stack();
         self.program_counter += opcode.length;
     }
 
@@ -724,7 +734,15 @@ impl CPU {
     }
 
     fn sbc(&mut self, opcode: &OpCode) {
-        todo!()
+        let addr = self.get_operand_address(&opcode.mode);
+        let value = self.mem_read(addr);
+
+        let subtrahend = !value + 1;
+        let result = self.add(subtrahend);
+
+        self.register_a = result;
+        self.update_zero_and_negative_flags(result);
+        self.program_counter += opcode.length;
     }
 
     fn sec(&mut self, opcode: &OpCode) {
@@ -733,12 +751,12 @@ impl CPU {
     }
 
     fn sed(&mut self, opcode: &OpCode) {
-        self.status |= 0b0000_1000;
+        self.set_decimal_flag(true);
         self.program_counter += opcode.length;
     }
 
     fn sei(&mut self, opcode: &OpCode) {
-        self.status |= 0b0000_0100;
+        self.set_interrupt_flag(true);
         self.program_counter += opcode.length;
     }
 
@@ -773,9 +791,8 @@ impl CPU {
     }
 
     fn tsx(&mut self, opcode: &OpCode) {
-        let value = self.mem_read(CPU::STACK_ADDRESS + self.stack_pointer as u16);
-        self.register_x = value;
-        self.stack_pointer += 1;
+        self.register_x = self.pull_from_stack();
+        self.stack_pointer -= 1; // undo stack pointer change
         self.program_counter += opcode.length;
     }
 
@@ -786,11 +803,8 @@ impl CPU {
     }
 
     fn txs(&mut self, opcode: &OpCode) {
-        self.mem_write(
-            CPU::STACK_ADDRESS + self.stack_pointer as u16,
-            self.register_x,
-        );
-        self.stack_pointer -= 1;
+        self.push_to_stack(self.register_x);
+        self.stack_pointer += 1; // undo stack pointer change
         self.program_counter += opcode.length;
     }
 
@@ -828,6 +842,30 @@ impl CPU {
             self.status |= 0b0100_0000;
         } else {
             self.status &= 0b1011_1111;
+        }
+    }
+
+    fn set_break_flag(&mut self, break_flag: bool) {
+        if break_flag {
+            self.status |= 0b0001_0000;
+        } else {
+            self.status &= 0b1110_1111;
+        }
+    }
+
+    fn set_interrupt_flag(&mut self, interrupt: bool) {
+        if interrupt {
+            self.status |= 0b0000_0100;
+        } else {
+            self.status &= 0b1111_1011;
+        }
+    }
+
+    fn set_decimal_flag(&mut self, decimal: bool) {
+        if decimal {
+            self.status |= 0b0000_1000;
+        } else {
+            self.status &= 0b1111_0111;
         }
     }
 
@@ -1391,7 +1429,14 @@ mod test {
 
     #[test]
     fn test_sbc() {
-        return;
+        let mut cpu = CPU::new();
+        cpu.load(vec![0xE9, 0x10]);
+        cpu.reset();
+        cpu.register_a = 0x1C;
+        cpu.run();
+
+        assert_eq!(cpu.register_a, 0x0C);
+        assert_eq!(cpu.status, 0b0001_0001);
     }
 
     #[test]
