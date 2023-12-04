@@ -1,9 +1,7 @@
 use lazy_static::lazy_static;
 use std::collections::HashMap;
 
-fn main() {
-    println!("Hello, world!");
-}
+fn main() {}
 
 #[derive(Debug, PartialEq, Eq)]
 #[allow(non_camel_case_types)]
@@ -595,7 +593,13 @@ impl CPU {
     }
 
     fn jsr(&mut self, opcode: &OpCode) {
-        todo!()
+        let jump_addr = self.get_operand_address(&opcode.mode);
+
+        let next_instruction = self.program_counter + opcode.length - 1;
+        self.push_to_stack((next_instruction >> 8) as u8);
+        self.push_to_stack((next_instruction & 0xFF) as u8);
+
+        self.program_counter = jump_addr;
     }
 
     fn lda(&mut self, opcode: &OpCode) {
@@ -729,8 +733,11 @@ impl CPU {
         todo!()
     }
 
-    fn rts(&mut self, opcode: &OpCode) {
-        todo!()
+    fn rts(&mut self, _opcode: &OpCode) {
+        let low_byte = self.pull_from_stack();
+        let high_byte = self.pull_from_stack();
+
+        self.program_counter = ((high_byte as u16) << 8) | (low_byte as u16) + 1;
     }
 
     fn sbc(&mut self, opcode: &OpCode) {
@@ -880,7 +887,7 @@ impl CPU {
 
     pub fn run(&mut self) {
         while self.status & 0b0001_0000 == 0 {
-            println!("running");
+            // println!("running");
             let byte = self.mem_read(self.program_counter);
             let opcode = CPU_OPCODES
                 .get(&byte)
@@ -1243,7 +1250,15 @@ mod test {
 
     #[test]
     fn test_jsr() {
-        return;
+        let mut cpu = CPU::new();
+        cpu.load(vec![0x20, 0x01, 0xC6]);
+        cpu.reset();
+        cpu.run();
+
+        assert_eq!(cpu.program_counter, 0xC601 + 1); // +1 for BRK
+        assert_eq!(cpu.mem_read(0x01FF), 0x80);
+        assert_eq!(cpu.mem_read(0x01FE), 0x02);
+        assert_eq!(cpu.stack_pointer, 0xFD);
     }
 
     // LDA (also tests all addressing modes)
@@ -1424,7 +1439,14 @@ mod test {
 
     #[test]
     fn test_rts() {
-        return;
+        let mut cpu = CPU::new();
+        cpu.load(vec![0x60]);
+        cpu.reset();
+        cpu.stack_pointer = 0xFD;
+        cpu.mem_write_u16(0x01FD, 0x01C6);
+        cpu.run();
+
+        assert_eq!(cpu.program_counter, 0x01C7 + 1); // +1 for BRK
     }
 
     #[test]
