@@ -729,8 +729,12 @@ impl CPU {
         self.program_counter += opcode.length;
     }
 
-    fn rti(&mut self, opcode: &OpCode) {
-        todo!()
+    fn rti(&mut self, _opcode: &OpCode) {
+        self.status = self.pull_from_stack();
+        let low_byte = self.pull_from_stack();
+        let high_byte = self.pull_from_stack();
+
+        self.program_counter = ((high_byte as u16) << 8) | (low_byte as u16);
     }
 
     fn rts(&mut self, _opcode: &OpCode) {
@@ -887,7 +891,6 @@ impl CPU {
 
     pub fn run(&mut self) {
         while self.status & 0b0001_0000 == 0 {
-            // println!("running");
             let byte = self.mem_read(self.program_counter);
             let opcode = CPU_OPCODES
                 .get(&byte)
@@ -1434,7 +1437,16 @@ mod test {
 
     #[test]
     fn test_rti() {
-        return;
+        let mut cpu = CPU::new();
+        cpu.load(vec![0x40]);
+        cpu.reset();
+        cpu.stack_pointer = 0xFC;
+        cpu.mem_write(0x01FC, 0b1110_1001);
+        cpu.mem_write_u16(0x01FD, 0x01C6);
+        cpu.run();
+
+        assert_eq!(cpu.program_counter, 0x01C6 + 1); // +1 for BRK
+        assert_eq!(cpu.status, 0b1111_1001); // BRK flag gets set too
     }
 
     #[test]
