@@ -343,8 +343,8 @@ impl CPU {
     }
 
     pub fn load(&mut self, program: Vec<u8>) {
-        self.memory[0x8000..(0x8000 + program.len())].copy_from_slice(&program[..]);
-        self.mem_write_u16(0xFFFC, 0x8000);
+        self.memory[0x0600..(0x0600 + program.len())].copy_from_slice(&program[..]);
+        self.mem_write_u16(0xFFFC, 0x0600);
     }
 
     pub fn add(&mut self, value: u8) -> u8 {
@@ -356,8 +356,14 @@ impl CPU {
     }
 
     pub fn push_to_stack(&mut self, value: u8) {
-        self.mem_write(CPU::STACK_ADDRESS + self.stack_pointer as u16, value);
         self.stack_pointer -= 1;
+        self.mem_write(CPU::STACK_ADDRESS + self.stack_pointer as u16, value);
+        println!(
+            "push {:02X} to stack at {:04X}",
+            value,
+            CPU::STACK_ADDRESS + self.stack_pointer as u16
+        );
+        println!("stack pointer now {:02X}", self.stack_pointer);
     }
 
     pub fn pull_from_stack(&mut self) -> u8 {
@@ -597,6 +603,11 @@ impl CPU {
         let jump_addr = self.get_operand_address(&opcode.mode);
 
         let next_instruction = self.program_counter + opcode.length - 1;
+        println!("JSR next instruction: {:04X}", next_instruction);
+        let high_byte = (next_instruction >> 8) as u8;
+        let low_byte = (next_instruction & 0xFF) as u8;
+        println!("JSR high byte: {:02X}", high_byte);
+        println!("JSR low byte: {:02X}", low_byte);
         self.push_to_stack((next_instruction >> 8) as u8);
         self.push_to_stack((next_instruction & 0xFF) as u8);
 
@@ -742,8 +753,10 @@ impl CPU {
     fn rts(&mut self, _opcode: &OpCode) {
         let low_byte = self.pull_from_stack();
         let high_byte = self.pull_from_stack();
+        let addr = ((high_byte as u16) << 8) | (low_byte as u16);
+        println!("RTS addr: {:04X}", addr);
 
-        self.program_counter = ((high_byte as u16) << 8) | (low_byte as u16) + 1;
+        self.program_counter = addr + 1;
     }
 
     fn sbc(&mut self, opcode: &OpCode) {
@@ -1360,8 +1373,8 @@ mod test {
         cpu.run();
 
         assert_eq!(cpu.program_counter, 0xC601 + 1); // +1 for BRK
-        assert_eq!(cpu.mem_read(0x01FF), 0x80);
-        assert_eq!(cpu.mem_read(0x01FE), 0x02);
+        assert_eq!(cpu.mem_read(0x01FE), 0x06);
+        assert_eq!(cpu.mem_read(0x01FD), 0x02);
         assert_eq!(cpu.stack_pointer, 0xFD);
     }
 
@@ -1543,7 +1556,7 @@ mod test {
         cpu.register_a = 0x1C;
         cpu.run();
 
-        assert_eq!(cpu.mem_read(0x01FF), 0x1C);
+        assert_eq!(cpu.mem_read(0x01FE), 0x1C);
         assert_eq!(cpu.stack_pointer, 0xFE);
     }
 
@@ -1555,7 +1568,7 @@ mod test {
         cpu.status = 0b1100_0001;
         cpu.run();
 
-        assert_eq!(cpu.mem_read(0x01FF), 0b1100_0001);
+        assert_eq!(cpu.mem_read(0x01FE), 0b1100_0001);
         assert_eq!(cpu.stack_pointer, 0xFE);
     }
 
@@ -1648,11 +1661,11 @@ mod test {
         let mut cpu = CPU::new();
         cpu.load(vec![0x60]);
         cpu.reset();
-        cpu.stack_pointer = 0xFD;
-        cpu.mem_write_u16(0x01FD, 0x01C6);
+        cpu.stack_pointer = 0xFC;
+        cpu.mem_write_u16(0x01FC, 0x01C6);
         cpu.run();
 
-        assert_eq!(cpu.program_counter, 0x01C7 + 1); // +1 for BRK
+        assert_eq!(cpu.program_counter, 0x01C7 + 1); // RTS adds 1, +1 for BRK
     }
 
     #[test]
@@ -1887,5 +1900,18 @@ mod test {
         cpu.run();
 
         assert_eq!(cpu.register_x, 0xC1)
+    }
+
+    #[test]
+    fn test_jsr_and_rts() {
+        let mut cpu = CPU::new();
+        cpu.load(vec![0x20, 0x01, 0xC6, 0xAA]); // JSR 0xC601, TAX
+        cpu.reset();
+        cpu.mem_write(0xC601, 0xAA); // TAX - just filler
+        cpu.mem_write(0xC602, 0x60); // RTS
+        cpu.run();
+
+        assert_eq!(cpu.program_counter, 0x605);
+        assert_eq!(cpu.mem_read_u16(0x01FE), 0x06);
     }
 }
