@@ -283,12 +283,9 @@ impl CPU {
                 addr
             }
             AddressingMode::Indirect => {
-                println!("Indirect");
                 let ptr = self.mem_read_u16(self.program_counter + 1);
                 let lo = self.mem_read(ptr as u16);
                 let hi = self.mem_read(ptr.wrapping_add(1) as u16);
-                println!("ptr: {:02X}", ptr);
-                println!("inside get_operand_address lo: {:X}, hi: {:X}", lo, hi);
                 (hi as u16) << 8 | (lo as u16)
             }
             AddressingMode::Indirect_X => {
@@ -351,9 +348,11 @@ impl CPU {
     }
 
     pub fn add(&mut self, value: u8) -> u8 {
-        let result = self.register_a as u16 + value as u16 + (self.status & 0b0000_0001) as u16;
-        self.set_carry_flag(result > 0xFF);
-        let result = (result & 0xFF) as u8;
+        let result = self
+            .register_a
+            .wrapping_add(value)
+            .wrapping_add(self.status & 0b0000_0001);
+        self.set_carry_flag(result < self.register_a);
         self.set_overflow_flag((self.register_a ^ result) & (value ^ result) & 0b1000_0000 != 0);
         result
     }
@@ -593,7 +592,6 @@ impl CPU {
 
     fn jmp(&mut self, opcode: &OpCode) {
         let addr = self.get_operand_address(&opcode.mode);
-        println!("jmp mode: {:?}, addr: {:X}", opcode.mode, addr);
         self.program_counter = addr;
     }
 
@@ -758,7 +756,8 @@ impl CPU {
         let addr = self.get_operand_address(&opcode.mode);
         let value = self.mem_read(addr);
 
-        let subtrahend = !value + 1;
+        let carry = self.status & 0b0000_0001;
+        let subtrahend = !value + 1 - carry;
         let result = self.add(subtrahend);
 
         self.register_a = result;
@@ -914,21 +913,26 @@ impl CPU {
             let opcode = CPU_OPCODES
                 .get(&byte)
                 .expect(format!("opcode {:X} not found", byte).as_str());
-            println!("===========");
-            println!("registers:");
-            println!("A: {:02X}", self.register_a);
-            println!("X: {:02X}", self.register_x);
-            println!("Y: {:02X}", self.register_y);
-            println!("last pressed key: {:02X}", self.mem_read(0xff));
-            let current_direction = self.mem_read(0x02);
-            match current_direction {
-                0x01 => println!("current direction: up"),
-                0x02 => println!("current direction: right"),
-                0x04 => println!("current direction: down"),
-                0x08 => println!("current direction: left"),
-                _ => println!("current direction: unknown"),
-            }
-            println!("snake length: {}", self.mem_read(0x03));
+            // println!("===========");
+            // println!("registers:");
+            // println!("A: {:02X}", self.register_a);
+            // println!("X: {:02X}", self.register_x);
+            // println!("Y: {:02X}", self.register_y);
+            // println!("last pressed key: {:02X}", self.mem_read(0xff));
+            // let current_direction = self.mem_read(0x02);
+            // match current_direction {
+            //     0x01 => println!("current direction: up"),
+            //     0x02 => println!("current direction: right"),
+            //     0x04 => println!("current direction: down"),
+            //     0x08 => println!("current direction: left"),
+            //     _ => println!("current direction: unknown"),
+            // }
+            // println!("snake length: {}", self.mem_read(0x03));
+            // println!(
+            //     "snake head position: {:02X} {:02X}",
+            //     self.mem_read(0x10),
+            //     self.mem_read(0x11)
+            // );
             // println!("status: {:08b}", self.status);
             // println!("opcode: {:02X}", byte);
             // println!("opcode: {:?}", opcode.name);
@@ -1041,6 +1045,18 @@ mod test {
                 expected_status
             );
         }
+    }
+
+    #[test]
+    fn test_adc_with_carry() {
+        let mut cpu = CPU::new();
+        cpu.load(vec![0x69, 0x10]);
+        cpu.reset();
+        cpu.register_a = 0x50;
+        cpu.status = 0b0000_0001;
+        cpu.run();
+
+        assert_eq!(cpu.register_a, 0x61);
     }
 
     #[test]
