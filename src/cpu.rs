@@ -306,21 +306,21 @@ impl CPU {
         }
     }
 
-    fn mem_read(&self, addr: u16) -> u8 {
+    pub fn mem_read(&self, addr: u16) -> u8 {
         self.memory[addr as usize]
     }
 
-    fn mem_write(&mut self, addr: u16, data: u8) {
+    pub fn mem_write(&mut self, addr: u16, data: u8) {
         self.memory[addr as usize] = data;
     }
 
-    fn mem_read_u16(&self, pos: u16) -> u16 {
+    pub fn mem_read_u16(&self, pos: u16) -> u16 {
         let lo = self.mem_read(pos) as u16;
         let hi = self.mem_read(pos + 1) as u16;
         hi << 8 | lo
     }
 
-    fn mem_write_u16(&mut self, pos: u16, data: u16) {
+    pub fn mem_write_u16(&mut self, pos: u16, data: u16) {
         let hi = (data >> 8) as u8;
         let lo = (data & 0xFFFF) as u8;
         self.mem_write(pos, lo);
@@ -906,11 +906,29 @@ impl CPU {
     }
 
     pub fn run(&mut self) {
+        self.run_with_callback(|_| {});
+    }
+
+    pub fn run_with_callback<F>(&mut self, mut callback: F)
+    where
+        F: FnMut(&mut CPU),
+    {
         while self.status & 0b0001_0000 == 0 {
+            callback(self);
             let byte = self.mem_read(self.program_counter);
             let opcode = CPU_OPCODES
                 .get(&byte)
                 .expect(format!("opcode {:X} not found", byte).as_str());
+            if opcode.name != "BRK" {
+                println!("opcode: {:?}", opcode.name);
+                println!("PC: {:04X}", self.program_counter);
+                println!("stack contents:");
+                for byte in
+                    &self.memory[(CPU::STACK_ADDRESS + self.stack_pointer as u16) as usize..=0x01FF]
+                {
+                    println!("{:02X}", byte);
+                }
+            }
 
             match &*opcode.name.to_lowercase() {
                 "adc" => self.adc(opcode),
