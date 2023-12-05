@@ -283,9 +283,12 @@ impl CPU {
                 addr
             }
             AddressingMode::Indirect => {
-                let ptr = self.mem_read(self.program_counter + 1);
+                println!("Indirect");
+                let ptr = self.mem_read_u16(self.program_counter + 1);
                 let lo = self.mem_read(ptr as u16);
                 let hi = self.mem_read(ptr.wrapping_add(1) as u16);
+                println!("ptr: {:02X}", ptr);
+                println!("inside get_operand_address lo: {:X}, hi: {:X}", lo, hi);
                 (hi as u16) << 8 | (lo as u16)
             }
             AddressingMode::Indirect_X => {
@@ -358,12 +361,6 @@ impl CPU {
     pub fn push_to_stack(&mut self, value: u8) {
         self.stack_pointer -= 1;
         self.mem_write(CPU::STACK_ADDRESS + self.stack_pointer as u16, value);
-        println!(
-            "push {:02X} to stack at {:04X}",
-            value,
-            CPU::STACK_ADDRESS + self.stack_pointer as u16
-        );
-        println!("stack pointer now {:02X}", self.stack_pointer);
     }
 
     pub fn pull_from_stack(&mut self) -> u8 {
@@ -594,22 +591,18 @@ impl CPU {
 
     fn jmp(&mut self, opcode: &OpCode) {
         let addr = self.get_operand_address(&opcode.mode);
-        let value = self.mem_read(addr);
-
-        self.program_counter = value as u16;
+        println!("jmp mode: {:?}, addr: {:X}", opcode.mode, addr);
+        self.program_counter = addr;
     }
 
     fn jsr(&mut self, opcode: &OpCode) {
         let jump_addr = self.get_operand_address(&opcode.mode);
 
         let next_instruction = self.program_counter + opcode.length - 1;
-        println!("JSR next instruction: {:04X}", next_instruction);
         let high_byte = (next_instruction >> 8) as u8;
         let low_byte = (next_instruction & 0xFF) as u8;
-        println!("JSR high byte: {:02X}", high_byte);
-        println!("JSR low byte: {:02X}", low_byte);
-        self.push_to_stack((next_instruction >> 8) as u8);
-        self.push_to_stack((next_instruction & 0xFF) as u8);
+        self.push_to_stack(high_byte);
+        self.push_to_stack(low_byte);
 
         self.program_counter = jump_addr;
     }
@@ -754,7 +747,6 @@ impl CPU {
         let low_byte = self.pull_from_stack();
         let high_byte = self.pull_from_stack();
         let addr = ((high_byte as u16) << 8) | (low_byte as u16);
-        println!("RTS addr: {:04X}", addr);
 
         self.program_counter = addr + 1;
     }
@@ -919,16 +911,31 @@ impl CPU {
             let opcode = CPU_OPCODES
                 .get(&byte)
                 .expect(format!("opcode {:X} not found", byte).as_str());
-            if opcode.name != "BRK" {
-                println!("opcode: {:?}", opcode.name);
-                println!("PC: {:04X}", self.program_counter);
-                println!("stack contents:");
-                for byte in
-                    &self.memory[(CPU::STACK_ADDRESS + self.stack_pointer as u16) as usize..=0x01FF]
-                {
-                    println!("{:02X}", byte);
-                }
+            println!("===========");
+            println!("registers:");
+            println!("A: {:02X}", self.register_a);
+            println!("X: {:02X}", self.register_x);
+            println!("Y: {:02X}", self.register_y);
+            println!("last pressed key: {:02X}", self.mem_read(0xff));
+            let current_direction = self.mem_read(0x02);
+            match current_direction {
+                0x01 => println!("current direction: up"),
+                0x02 => println!("current direction: right"),
+                0x04 => println!("current direction: down"),
+                0x08 => println!("current direction: left"),
+                _ => println!("current direction: unknown"),
             }
+            println!("snake length: {}", self.mem_read(0x03));
+            // println!("status: {:08b}", self.status);
+            // println!("opcode: {:02X}", byte);
+            // println!("opcode: {:?}", opcode.name);
+            // println!("PC: {:04X}", self.program_counter);
+            // println!("stack contents:");
+            // for byte in
+            //     &self.memory[(CPU::STACK_ADDRESS + self.stack_pointer as u16) as usize..=0x01FF]
+            // {
+            //     println!("{:02X}", byte);
+            // }
 
             match &*opcode.name.to_lowercase() {
                 "adc" => self.adc(opcode),
@@ -1093,6 +1100,18 @@ mod test {
     }
 
     #[test]
+    fn test_beq_negative() {
+        let mut cpu = CPU::new();
+        cpu.load(vec![0xF0, (-16 as i8 as u8)]);
+        cpu.reset();
+        let orig_pc = cpu.program_counter;
+        cpu.status = 0b0000_0010;
+        cpu.run();
+
+        assert_eq!(cpu.program_counter, orig_pc - 14 + 1);
+    }
+
+    #[test]
     fn test_bit() {
         let mut cpu = CPU::new();
         cpu.load(vec![0x24, 0xC0]);
@@ -1101,7 +1120,6 @@ mod test {
         cpu.register_a = 0b1100_1101;
         cpu.run();
 
-        println!("cpu status: {:08b}", cpu.status);
         assert_eq!(cpu.status, 0b1001_0000);
     }
 
@@ -1373,14 +1391,25 @@ mod test {
     }
 
     #[test]
-    fn test_jmp() {
+    fn test_jmp_absolute() {
         let mut cpu = CPU::new();
         cpu.load(vec![0x4C, 0x01, 0xC6]);
         cpu.reset();
-        cpu.mem_write_u16(0xC601, 0x1C);
         cpu.run();
 
-        assert_eq!(cpu.program_counter, 0x1C + 1); // +1 for BRK
+        assert_eq!(cpu.program_counter, 0xC601 + 1); // +1 for BRK
+    }
+
+    #[test]
+    fn test_jmp_indirect() {
+        let mut cpu = CPU::new();
+        cpu.load(vec![0x6C, 0xAA, 0x22]);
+        cpu.reset();
+        cpu.mem_write(0x22AA, 0xFC);
+        cpu.mem_write(0x22AB, 0xBA);
+        cpu.run();
+
+        assert_eq!(cpu.program_counter, 0xBAFC + 1); // +1 for BRK
     }
 
     #[test]
@@ -1862,7 +1891,6 @@ mod test {
         cpu.load(vec![0xBA]);
         cpu.reset();
         let stack_addr = CPU::STACK_ADDRESS + cpu.stack_pointer as u16;
-        println!("stack_addr: {:X}", stack_addr);
         cpu.mem_write(CPU::STACK_ADDRESS + cpu.stack_pointer as u16, 0x1C);
         cpu.run();
 
