@@ -353,7 +353,7 @@ impl CPU {
     pub fn add(&mut self, value: u8) -> u8 {
         let result = self.register_a as u16 + value as u16 + (self.status & 0b0000_0001) as u16;
         self.set_carry_flag(result > 0xFF);
-        let result = result as u8;
+        let result = (result & 0xFF) as u8;
         self.set_overflow_flag((self.register_a ^ result) & (value ^ result) & 0b1000_0000 != 0);
         result
     }
@@ -1007,13 +1007,37 @@ mod test {
     #[test]
     fn test_adc() {
         let mut cpu = CPU::new();
-        cpu.load(vec![0x69, 0x02]);
-        cpu.reset();
-        cpu.register_a = 0xFF;
-        cpu.run();
+        let mut truth_table = vec![];
+        truth_table.push((0x50, 0x10, 0x60, 0b0000_0000));
+        truth_table.push((0x50, 0x50, 0xA0, 0b0100_0000));
+        truth_table.push((0x50, 0x90, 0xE0, 0b0000_0000));
+        truth_table.push((0x50, 0xD0, 0x20, 0b0000_0001));
+        truth_table.push((0xD0, 0x10, 0xE0, 0b0000_0000));
+        truth_table.push((0xD0, 0x50, 0x20, 0b0000_0001));
+        truth_table.push((0xD0, 0x90, 0x60, 0b0100_0001));
+        truth_table.push((0xD0, 0xD0, 0xA0, 0b0000_0001));
 
-        assert_eq!(cpu.register_a, 0x01);
-        assert_eq!(cpu.status, 0b0001_0001);
+        for (a, b, expected, expected_status) in truth_table {
+            cpu.load(vec![0x69, b]);
+            cpu.reset();
+            cpu.register_a = a;
+            cpu.run();
+
+            assert_eq!(
+                cpu.register_a, expected,
+                "a: {:X}, b: {:X}, register A: {:X}, expected: {:X}",
+                a, b, cpu.register_a, expected
+            );
+            assert_eq!(
+                cpu.status & expected_status,
+                expected_status,
+                "a: {:X}, b: {:X}, status: {:08b}, expected_status: {:08b}",
+                a,
+                b,
+                cpu.status,
+                expected_status
+            );
+        }
     }
 
     #[test]
