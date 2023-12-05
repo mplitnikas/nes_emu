@@ -435,6 +435,8 @@ impl CPU {
         self.update_zero_and_negative_flags(result);
         self.status |= value & 0b1100_0000;
         self.status &= value | 0b1100_0000;
+
+        self.program_counter += opcode.length;
     }
 
     fn bmi(&mut self, opcode: &OpCode) {
@@ -1060,7 +1062,15 @@ mod test {
 
     #[test]
     fn test_bit() {
-        return;
+        let mut cpu = CPU::new();
+        cpu.load(vec![0x24, 0xC0]);
+        cpu.reset();
+        cpu.mem_write(0xC0, 0b1000_0000);
+        cpu.register_a = 0b1100_1101;
+        cpu.run();
+
+        println!("cpu status: {:08b}", cpu.status);
+        assert_eq!(cpu.status, 0b1001_0000);
     }
 
     #[test]
