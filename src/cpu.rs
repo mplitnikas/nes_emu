@@ -455,7 +455,7 @@ impl CPU {
     fn brk(&mut self, opcode: &OpCode) {
         self.program_counter += opcode.length;
         self.set_break_flag(true);
-        // TODO: trigger interrupt
+        self.set_interrupt_flag(true);
     }
 
     fn bvc(&mut self, opcode: &OpCode) {
@@ -679,6 +679,7 @@ impl CPU {
 
     fn php(&mut self, opcode: &OpCode) {
         self.push_to_stack(self.status);
+        self.set_break_flag(true);
         self.program_counter += opcode.length;
     }
 
