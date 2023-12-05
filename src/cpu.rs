@@ -434,8 +434,10 @@ impl CPU {
 
         let result = self.register_a & value;
         self.update_zero_and_negative_flags(result);
-        self.status |= value & 0b1100_0000;
-        self.status &= value | 0b1100_0000;
+
+        let bitmask = value & 0b1100_0000;
+        self.status &= 0b0011_1111;
+        self.status |= bitmask;
 
         self.program_counter += opcode.length;
     }
@@ -1141,11 +1143,12 @@ mod test {
         let mut cpu = CPU::new();
         cpu.load(vec![0x24, 0xC0]);
         cpu.reset();
-        cpu.mem_write(0xC0, 0b1000_0000);
-        cpu.register_a = 0b1100_1101;
+        cpu.mem_write(0xC0, 0b0100_0001);
+        cpu.register_a = 0b0000_0001;
+        cpu.status = 0b1000_0011;
         cpu.run();
 
-        assert_eq!(cpu.status, 0b1001_0100);
+        assert_eq!(cpu.status, 0b0101_0101);
     }
 
     #[test]
