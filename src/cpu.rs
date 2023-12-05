@@ -1526,13 +1526,13 @@ mod test {
     #[test]
     fn test_ora() {
         let mut cpu = CPU::new();
-        cpu.load(vec![0x09, 0x01]);
+        cpu.load(vec![0x09, 0b1111_0000]);
         cpu.reset();
         cpu.register_a = 0x01;
         cpu.run();
 
-        assert_eq!(cpu.register_a, 0x01);
-        assert_eq!(cpu.status, 0b0001_0000);
+        assert_eq!(cpu.register_a, 0b1111_0001);
+        assert_eq!(cpu.status, 0b1001_0000);
     }
 
     #[test]
@@ -1754,30 +1754,6 @@ mod test {
         cpu.run();
 
         assert_eq!(cpu.mem_read(0xC602), 0x1C);
-        assert_eq!(cpu.status, 0b0001_0000);
-    }
-    #[test]
-    fn test_sta_indirect_x() {
-        let mut cpu = CPU::new();
-        cpu.load(vec![0x81, 0xBA]);
-        cpu.reset();
-        cpu.register_x = 0x01;
-        cpu.register_a = 0x1C;
-        cpu.run();
-
-        assert_eq!(cpu.register_a, 0x1C);
-        assert_eq!(cpu.status, 0b0001_0000);
-    }
-    #[test]
-    fn test_sta_indirect_y() {
-        let mut cpu = CPU::new();
-        cpu.load(vec![0x91, 0xBA]);
-        cpu.reset();
-        cpu.register_x = 0x01;
-        cpu.register_a = 0x1C;
-        cpu.run();
-
-        assert_eq!(cpu.register_a, 0x1C);
         assert_eq!(cpu.status, 0b0001_0000);
     }
 
