@@ -1050,7 +1050,7 @@ mod test {
         cpu.run();
 
         assert_eq!(cpu.register_a, 0x01);
-        assert_eq!(cpu.status, 0b0001_0000);
+        assert_eq!(cpu.status, 0b0001_0100);
     }
 
     #[test]
@@ -1062,7 +1062,7 @@ mod test {
         cpu.run();
 
         assert_eq!(cpu.register_a, 0b0000_0010);
-        assert_eq!(cpu.status, 0b0001_0001);
+        assert_eq!(cpu.status, 0b0001_0101);
     }
     #[test]
     fn test_asl_memory() {
@@ -1073,7 +1073,7 @@ mod test {
         cpu.run();
 
         assert_eq!(cpu.mem_read(0xC0), 0b0000_0010);
-        assert_eq!(cpu.status, 0b0001_0001);
+        assert_eq!(cpu.status, 0b0001_0101);
     }
 
     #[test]
@@ -1145,7 +1145,7 @@ mod test {
         cpu.register_a = 0b1100_1101;
         cpu.run();
 
-        assert_eq!(cpu.status, 0b1001_0000);
+        assert_eq!(cpu.status, 0b1001_0100);
     }
 
     #[test]
@@ -1194,7 +1194,7 @@ mod test {
         cpu.run();
 
         assert_eq!(cpu.program_counter, orig_pc + 1);
-        assert_eq!(cpu.status, 0b0001_0000);
+        assert_eq!(cpu.status, 0b0001_0100);
     }
 
     #[test]
@@ -1229,7 +1229,7 @@ mod test {
         cpu.status = 0b0000_0001;
         cpu.run();
 
-        assert_eq!(cpu.status, 0b0001_0000);
+        assert_eq!(cpu.status, 0b0001_0100);
     }
 
     #[test]
@@ -1240,7 +1240,7 @@ mod test {
         cpu.status = 0b0000_1000;
         cpu.run();
 
-        assert_eq!(cpu.status, 0b0001_0000);
+        assert_eq!(cpu.status, 0b0001_0100);
     }
 
     #[test]
@@ -1251,7 +1251,7 @@ mod test {
         cpu.status = 0b0000_0100;
         cpu.run();
 
-        assert_eq!(cpu.status, 0b0001_0000);
+        assert_eq!(cpu.status, 0b0001_0100);
     }
 
     #[test]
@@ -1262,7 +1262,7 @@ mod test {
         cpu.status = 0b0100_0000;
         cpu.run();
 
-        assert_eq!(cpu.status, 0b0001_0000);
+        assert_eq!(cpu.status, 0b0001_0100);
     }
 
     #[test]
@@ -1273,7 +1273,7 @@ mod test {
         cpu.register_a = 0x01;
         cpu.run();
 
-        assert_eq!(cpu.status, 0b0001_0011);
+        assert_eq!(cpu.status, 0b0001_0111);
     }
 
     #[test]
@@ -1284,7 +1284,7 @@ mod test {
         cpu.register_x = 0x01;
         cpu.run();
 
-        assert_eq!(cpu.status, 0b0001_0011);
+        assert_eq!(cpu.status, 0b0001_0111);
     }
 
     #[test]
@@ -1295,7 +1295,7 @@ mod test {
         cpu.register_y = 0x01;
         cpu.run();
 
-        assert_eq!(cpu.status, 0b0001_0011);
+        assert_eq!(cpu.status, 0b0001_0111);
     }
 
     #[test]
@@ -1307,7 +1307,7 @@ mod test {
         cpu.run();
 
         assert_eq!(cpu.mem_read(0xC0), 0x00);
-        assert_eq!(cpu.status, 0b0001_0010);
+        assert_eq!(cpu.status, 0b0001_0110);
     }
 
     #[test]
@@ -1319,7 +1319,7 @@ mod test {
         cpu.run();
 
         assert_eq!(cpu.register_x, 0x00);
-        assert_eq!(cpu.status, 0b0001_0010);
+        assert_eq!(cpu.status, 0b0001_0110);
     }
 
     #[test]
@@ -1331,7 +1331,7 @@ mod test {
         cpu.run();
 
         assert_eq!(cpu.register_y, 0x00);
-        assert_eq!(cpu.status, 0b0001_0010);
+        assert_eq!(cpu.status, 0b0001_0110);
     }
 
     #[test]
@@ -1343,7 +1343,7 @@ mod test {
         cpu.run();
 
         assert_eq!(cpu.register_a, 0x00);
-        assert_eq!(cpu.status, 0b0001_0010);
+        assert_eq!(cpu.status, 0b0001_0110);
     }
 
     #[test]
@@ -1355,7 +1355,7 @@ mod test {
         cpu.run();
 
         assert_eq!(cpu.mem_read(0xC0), 0x02);
-        assert_eq!(cpu.status, 0b0001_0000);
+        assert_eq!(cpu.status, 0b0001_0100);
     }
 
     // INX
@@ -1368,7 +1368,7 @@ mod test {
         cpu.run();
 
         assert_eq!(cpu.register_x, 0x1D);
-        assert_eq!(cpu.status, 0b0001_0000);
+        assert_eq!(cpu.status, 0b0001_0100);
     }
     #[test]
     fn test_inx_set_negative_flag() {
@@ -1379,7 +1379,7 @@ mod test {
         cpu.run();
 
         assert_eq!(cpu.register_x, 0xF5);
-        assert_eq!(cpu.status, 0b1001_0000);
+        assert_eq!(cpu.status, 0b1001_0100);
     }
     #[test]
     fn test_inx_set_zero_flag() {
@@ -1390,7 +1390,7 @@ mod test {
         cpu.run();
 
         assert_eq!(cpu.register_x, 0x00);
-        assert_eq!(cpu.status, 0b0001_0010);
+        assert_eq!(cpu.status, 0b0001_0110);
     }
     #[test]
     fn test_inx_overflow() {
@@ -1412,7 +1412,7 @@ mod test {
         cpu.run();
 
         assert_eq!(cpu.register_y, 0x1D);
-        assert_eq!(cpu.status, 0b0001_0000);
+        assert_eq!(cpu.status, 0b0001_0100);
     }
 
     #[test]
@@ -1459,7 +1459,7 @@ mod test {
         cpu.run();
 
         assert_eq!(cpu.register_a, 0x00);
-        assert_eq!(cpu.status, 0b0001_0010);
+        assert_eq!(cpu.status, 0b0001_0110);
     }
     #[test]
     fn test_lda_sets_negative_flag() {
@@ -1469,7 +1469,7 @@ mod test {
         cpu.run();
 
         assert_eq!(cpu.register_a, 0xF4);
-        assert_eq!(cpu.status, 0b1001_0000);
+        assert_eq!(cpu.status, 0b1001_0100);
     }
     #[test]
     fn test_lda_immediate() {
@@ -1479,7 +1479,7 @@ mod test {
         cpu.run();
 
         assert_eq!(cpu.register_a, 0x1C);
-        assert_eq!(cpu.status, 0b0001_0000);
+        assert_eq!(cpu.status, 0b0001_0100);
     }
     #[test]
     fn test_lda_zero_page() {
@@ -1490,7 +1490,7 @@ mod test {
         cpu.run();
 
         assert_eq!(cpu.register_a, 0x1C);
-        assert_eq!(cpu.status, 0b0001_0000);
+        assert_eq!(cpu.status, 0b0001_0100);
     }
     #[test]
     fn test_lda_zero_page_x() {
@@ -1502,7 +1502,7 @@ mod test {
         cpu.run();
 
         assert_eq!(cpu.register_a, 0x1C);
-        assert_eq!(cpu.status, 0b0001_0000);
+        assert_eq!(cpu.status, 0b0001_0100);
     }
     #[test]
     fn test_lda_absolute() {
@@ -1513,7 +1513,7 @@ mod test {
         cpu.run();
 
         assert_eq!(cpu.register_a, 0x1C);
-        assert_eq!(cpu.status, 0b0001_0000);
+        assert_eq!(cpu.status, 0b0001_0100);
     }
     #[test]
     fn test_lda_absolute_x() {
@@ -1525,7 +1525,7 @@ mod test {
         cpu.run();
 
         assert_eq!(cpu.register_a, 0x1C);
-        assert_eq!(cpu.status, 0b0001_0000);
+        assert_eq!(cpu.status, 0b0001_0100);
     }
     #[test]
     fn test_lda_absolute_y() {
@@ -1537,7 +1537,7 @@ mod test {
         cpu.run();
 
         assert_eq!(cpu.register_a, 0x1C);
-        assert_eq!(cpu.status, 0b0001_0000);
+        assert_eq!(cpu.status, 0b0001_0100);
     }
     #[test]
     fn test_lda_indirect_x() {
@@ -1550,7 +1550,7 @@ mod test {
         cpu.run();
 
         assert_eq!(cpu.register_a, 0x1C);
-        assert_eq!(cpu.status, 0b0001_0000);
+        assert_eq!(cpu.status, 0b0001_0100);
     }
     #[test]
     fn test_lda_indirect_y() {
@@ -1563,7 +1563,7 @@ mod test {
         cpu.run();
 
         assert_eq!(cpu.register_a, 0x1C);
-        assert_eq!(cpu.status, 0b0001_0000);
+        assert_eq!(cpu.status, 0b0001_0100);
     }
 
     #[test]
@@ -1595,7 +1595,7 @@ mod test {
         cpu.run();
 
         assert_eq!(cpu.register_a, 0b0000_0001);
-        assert_eq!(cpu.status, 0b0001_0000);
+        assert_eq!(cpu.status, 0b0001_0100);
     }
 
     #[test]
@@ -1605,7 +1605,7 @@ mod test {
         cpu.reset();
         cpu.run();
 
-        assert_eq!(cpu.status, 0b0001_0000);
+        assert_eq!(cpu.status, 0b0001_0100);
     }
 
     #[test]
@@ -1617,7 +1617,7 @@ mod test {
         cpu.run();
 
         assert_eq!(cpu.register_a, 0b1111_0001);
-        assert_eq!(cpu.status, 0b1001_0000);
+        assert_eq!(cpu.status, 0b1001_0100);
     }
 
     #[test]
@@ -1680,7 +1680,7 @@ mod test {
         cpu.run();
 
         assert_eq!(cpu.register_a, 0b0000_0101);
-        assert_eq!(cpu.status, 0b0001_0000);
+        assert_eq!(cpu.status, 0b0001_0100);
 
         cpu.load(vec![0x2A]);
         cpu.reset();
@@ -1689,7 +1689,7 @@ mod test {
         cpu.run();
 
         assert_eq!(cpu.register_a, 0b0000_0100);
-        assert_eq!(cpu.status, 0b0001_0001);
+        assert_eq!(cpu.status, 0b0001_0101);
     }
 
     #[test]
@@ -1702,7 +1702,7 @@ mod test {
         cpu.run();
 
         assert_eq!(cpu.register_a, 0b0000_0001);
-        assert_eq!(cpu.status, 0b0001_0001);
+        assert_eq!(cpu.status, 0b0001_0101);
 
         cpu.load(vec![0x6A]);
         cpu.reset();
@@ -1711,7 +1711,7 @@ mod test {
         cpu.run();
 
         assert_eq!(cpu.register_a, 0b1000_0001);
-        assert_eq!(cpu.status, 0b1001_0000);
+        assert_eq!(cpu.status, 0b1001_0100);
     }
 
     #[test]
@@ -1725,7 +1725,7 @@ mod test {
         cpu.run();
 
         assert_eq!(cpu.program_counter, 0x01C6 + 1); // +1 for BRK
-        assert_eq!(cpu.status, 0b1111_1001); // BRK flag gets set too
+        assert_eq!(cpu.status, 0b1111_1101); // BRK flag gets set too
     }
 
     #[test]
@@ -1749,7 +1749,7 @@ mod test {
         cpu.run();
 
         assert_eq!(cpu.register_a, 0x0C);
-        assert_eq!(cpu.status, 0b0001_0001);
+        assert_eq!(cpu.status, 0b0001_0101);
     }
 
     #[test]
@@ -1759,7 +1759,7 @@ mod test {
         cpu.reset();
         cpu.run();
 
-        assert_eq!(cpu.status, 0b0001_0001);
+        assert_eq!(cpu.status, 0b0001_0101);
     }
 
     #[test]
@@ -1769,7 +1769,7 @@ mod test {
         cpu.reset();
         cpu.run();
 
-        assert_eq!(cpu.status, 0b0001_1000);
+        assert_eq!(cpu.status, 0b0001_1100);
     }
 
     #[test]
@@ -1792,7 +1792,7 @@ mod test {
         cpu.run();
 
         assert_eq!(cpu.mem_read(0xB5), 0x1C);
-        assert_eq!(cpu.status, 0b0001_0000);
+        assert_eq!(cpu.status, 0b0001_0100);
     }
     #[test]
     fn test_sta_zero_page_x() {
@@ -1804,7 +1804,7 @@ mod test {
         cpu.run();
 
         assert_eq!(cpu.mem_read(0xB1), 0x1C);
-        assert_eq!(cpu.status, 0b0001_0000);
+        assert_eq!(cpu.status, 0b0001_0100);
     }
     #[test]
     fn test_sta_absolute() {
@@ -1815,7 +1815,7 @@ mod test {
         cpu.run();
 
         assert_eq!(cpu.mem_read(0xC601), 0x1C);
-        assert_eq!(cpu.status, 0b0001_0000);
+        assert_eq!(cpu.status, 0b0001_0100);
     }
     #[test]
     fn test_sta_absolute_x() {
@@ -1827,7 +1827,7 @@ mod test {
         cpu.run();
 
         assert_eq!(cpu.mem_read(0xC602), 0x1C);
-        assert_eq!(cpu.status, 0b0001_0000);
+        assert_eq!(cpu.status, 0b0001_0100);
     }
     #[test]
     fn test_sta_absolute_y() {
@@ -1839,7 +1839,7 @@ mod test {
         cpu.run();
 
         assert_eq!(cpu.mem_read(0xC602), 0x1C);
-        assert_eq!(cpu.status, 0b0001_0000);
+        assert_eq!(cpu.status, 0b0001_0100);
     }
 
     #[test]
@@ -1874,7 +1874,7 @@ mod test {
         cpu.run();
 
         assert_eq!(cpu.register_x, 0x1C);
-        assert_eq!(cpu.status, 0b0001_0000);
+        assert_eq!(cpu.status, 0b0001_0100);
     }
     #[test]
     fn test_tax_transfer_zero() {
@@ -1885,7 +1885,7 @@ mod test {
         cpu.run();
 
         assert_eq!(cpu.register_x, 0x00);
-        assert_eq!(cpu.status, 0b0001_0010);
+        assert_eq!(cpu.status, 0b0001_0110);
     }
     #[test]
     fn test_tax_transfer_negative() {
@@ -1896,7 +1896,7 @@ mod test {
         cpu.run();
 
         assert_eq!(cpu.register_x, 0xF4);
-        assert_eq!(cpu.status, 0b1001_0000);
+        assert_eq!(cpu.status, 0b1001_0100);
     }
 
     #[test]
