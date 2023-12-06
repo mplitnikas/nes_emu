@@ -1,5 +1,8 @@
+mod bus;
 mod cpu;
+mod opcodes;
 
+use crate::cpu::Mem;
 use cpu::CPU;
 use rand::Rng;
 use sdl2::event::Event;
