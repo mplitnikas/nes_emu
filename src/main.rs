@@ -34,12 +34,12 @@ fn main() {
         .create_texture_target(PixelFormatEnum::RGB24, 32, 32)
         .unwrap();
 
-    // let game_code = snake_game::SNAKE_GAME_CODE.to_vec();
-    let file = std::fs::read("roms/nestest.nes").expect("failed to open file");
+    let args: Vec<String> = std::env::args().collect();
+    let filename = &args[1];
+    let file = std::fs::read(filename).expect("failed to open file");
     let game_rom = Rom::new(&file).expect("failed to load rom");
     let bus = Bus::new(game_rom);
     let mut cpu = CPU::new(bus);
-    // cpu.load(game_code);
     cpu.reset();
 
     let mut screen_state = [0 as u8; 32 * 3 * 32];
