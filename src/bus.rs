@@ -1,14 +1,53 @@
 use crate::cpu::Mem;
+use crate::rom::Rom;
+
+//  _______________ $10000  _______________
+// | PRG-ROM       |       |               |
+// | Upper Bank    |       |               |
+// |_ _ _ _ _ _ _ _| $C000 | PRG-ROM       |
+// | PRG-ROM       |       |               |
+// | Lower Bank    |       |               |
+// |_______________| $8000 |_______________|
+// | SRAM          |       | SRAM          |
+// |_______________| $6000 |_______________|
+// | Expansion ROM |       | Expansion ROM |
+// |_______________| $4020 |_______________|
+// | I/O Registers |       |               |
+// |_ _ _ _ _ _ _ _| $4000 |               |
+// | Mirrors       |       | I/O Registers |
+// | $2000-$2007   |       |               |
+// |_ _ _ _ _ _ _ _| $2008 |               |
+// | I/O Registers |       |               |
+// |_______________| $2000 |_______________|
+// | Mirrors       |       |               |
+// | $0000-$07FF   |       |               |
+// |_ _ _ _ _ _ _ _| $0800 |               |
+// | RAM           |       | RAM           |
+// |_ _ _ _ _ _ _ _| $0200 |               |
+// | Stack         |       |               |
+// |_ _ _ _ _ _ _ _| $0100 |               |
+// | Zero Page     |       |               |
+// |_______________| $0000 |_______________|
 
 pub struct Bus {
-    cpu_vram: [u8; 2048],
+    pub cpu_vram: [u8; 2048],
+    pub rom: Rom,
 }
 
 impl Bus {
-    pub fn new() -> Self {
+    pub fn new(rom: Rom) -> Self {
         Self {
             cpu_vram: [0; 2048],
+            rom,
         }
+    }
+
+    pub fn read_prg_rom(&self, mut addr: u16) -> u8 {
+        addr -= PRG_ROM;
+        if self.rom.prg_rom.len() == 0x4000 && addr >= 0x4000 {
+            addr = addr % 0x4000
+        };
+        self.rom.prg_rom[addr as usize]
     }
 }
 
@@ -16,6 +55,8 @@ const RAM: u16 = 0x0000;
 const RAM_MIRRORS_END: u16 = 0x1FFF;
 const PPU_REGISTERS: u16 = 0x2000;
 const PPU_REGISTERS_MIRRORS_END: u16 = 0x3FFF;
+const PRG_ROM: u16 = 0x8000;
+const PRG_ROM_END: u16 = 0xFFFF;
 
 impl Mem for Bus {
     fn mem_read(&self, addr: u16) -> u8 {
@@ -28,6 +69,7 @@ impl Mem for Bus {
                 let _mirror_down_addr = addr & 0b0010_0000_0000_0111;
                 todo!("ppu not implemented yet!")
             }
+            PRG_ROM..=PRG_ROM_END => self.read_prg_rom(addr),
             _ => {
                 println!("ignoring mem read from address {:04X}", addr);
                 0
@@ -45,46 +87,11 @@ impl Mem for Bus {
                 let _mirror_down_addr = addr & 0b0010_0000_0000_0111;
                 todo!("ppu not implemented yet!")
             }
+            PRG_ROM..=PRG_ROM_END => {
+                panic!("attempted to write (u8) to prg rom address {:04X}", addr);
+            }
             _ => {
                 println!("ignoring mem write to address {:04X}", addr);
-            }
-        }
-    }
-
-    fn mem_read_u16(&self, addr: u16) -> u16 {
-        match addr {
-            RAM..=RAM_MIRRORS_END => {
-                let mirror_down_addr = addr & 0b0000_0111_1111_1111;
-                let low = self.mem_read(mirror_down_addr);
-                let high = self.mem_read(mirror_down_addr + 1);
-                (high as u16) << 8 | low as u16
-            }
-            PPU_REGISTERS..=PPU_REGISTERS_MIRRORS_END => {
-                let _mirror_down_addr = addr & 0b0010_0000_0000_0111;
-                todo!("ppu not implemented yet!")
-            }
-            _ => {
-                println!("ignoring u16 mem read from address {:04X}", addr);
-                0
-            }
-        }
-    }
-
-    fn mem_write_u16(&mut self, addr: u16, data: u16) {
-        match addr {
-            RAM..=RAM_MIRRORS_END => {
-                let mirror_down_addr = addr & 0b0000_0111_1111_1111;
-                let low = (data >> 8) as u8;
-                let high = (data & 0xFFFF) as u8;
-                self.mem_write(mirror_down_addr, low);
-                self.mem_write(mirror_down_addr + 1, high);
-            }
-            PPU_REGISTERS..=PPU_REGISTERS_MIRRORS_END => {
-                let _mirror_down_addr = addr & 0b0010_0000_0000_0111;
-                todo!("ppu not implemented yet!")
-            }
-            _ => {
-                println!("ignoring u16 mem write to address {:04X}", addr);
             }
         }
     }

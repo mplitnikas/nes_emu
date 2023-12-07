@@ -14,8 +14,17 @@ pub struct CPU {
 pub trait Mem {
     fn mem_read(&self, addr: u16) -> u8;
     fn mem_write(&mut self, addr: u16, data: u8);
-    fn mem_read_u16(&self, addr: u16) -> u16;
-    fn mem_write_u16(&mut self, addr: u16, data: u16);
+    fn mem_read_u16(&self, pos: u16) -> u16 {
+        let lo = self.mem_read(pos) as u16;
+        let hi = self.mem_read(pos + 1) as u16;
+        (hi << 8) | (lo as u16)
+    }
+    fn mem_write_u16(&mut self, pos: u16, data: u16) {
+        let hi = (data >> 8) as u8;
+        let lo = (data & 0xff) as u8;
+        self.mem_write(pos, lo);
+        self.mem_write(pos + 1, hi);
+    }
 }
 
 impl Mem for CPU {
@@ -40,7 +49,7 @@ const STACK_ADDRESS: u16 = 0x0100;
 const STACK_RESET: u8 = 0xFF;
 
 impl CPU {
-    pub fn new() -> Self {
+    pub fn new(bus: Bus) -> Self {
         CPU {
             register_a: 0,
             register_x: 0,
@@ -48,7 +57,7 @@ impl CPU {
             status: 0b0010_0000, // NV1B_DIZC
             program_counter: 0,
             stack_pointer: STACK_RESET,
-            bus: Bus::new(),
+            bus,
         }
     }
 
@@ -706,21 +715,6 @@ impl CPU {
             // println!("A: {:02X}", self.register_a);
             // println!("X: {:02X}", self.register_x);
             // println!("Y: {:02X}", self.register_y);
-            // println!("last pressed key: {:02X}", self.mem_read(0xff));
-            // let current_direction = self.mem_read(0x02);
-            // match current_direction {
-            //     0x01 => println!("current direction: up"),
-            //     0x02 => println!("current direction: right"),
-            //     0x04 => println!("current direction: down"),
-            //     0x08 => println!("current direction: left"),
-            //     _ => println!("current direction: unknown"),
-            // }
-            // println!("snake length: {}", self.mem_read(0x03));
-            // println!(
-            //     "snake head position: {:02X} {:02X}",
-            //     self.mem_read(0x10),
-            //     self.mem_read(0x11)
-            // );
             // println!("status: {:08b}", self.status);
             // println!("opcode: {:02X}", byte);
             // println!("opcode: {:?}", opcode.name);
