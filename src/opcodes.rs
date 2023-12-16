@@ -16,6 +16,7 @@ pub enum AddressingMode {
     Indirect,
     Indirect_X,
     Indirect_Y,
+    Relative,
     NoneAddressing,
 }
 
@@ -105,6 +106,11 @@ pub fn format_instruction(cpu: &CPU) -> String {
                 cpu.mem_read(op_addr)
             )
         }
+        AddressingMode::Relative => {
+            // +2 for opcode length
+            let op_addr = cpu.get_operand_address(&opcode.mode) + 2;
+            format!("${:04X}", op_addr)
+        }
         AddressingMode::NoneAddressing => "".to_string(),
     };
     let full_opcode = (0..opcode.length)
@@ -146,14 +152,14 @@ lazy_static! {
 
         // A branch not taken requires two machine cycles.
         // Add one if the branch is taken and add one more if the branch crosses a page boundary.
-        (0x10, OpCode::new(0x10, "BPL", 2, 2, AddressingMode::Immediate)),
-        (0x30, OpCode::new(0x30, "BMI", 2, 2, AddressingMode::Immediate)),
-        (0x50, OpCode::new(0x50, "BVC", 2, 3, AddressingMode::Immediate)),
-        (0x70, OpCode::new(0x70, "BVS", 2, 2, AddressingMode::Immediate)),
-        (0x90, OpCode::new(0x90, "BCC", 2, 2, AddressingMode::Immediate)),
-        (0xB0, OpCode::new(0xB0, "BCS", 2, 2, AddressingMode::Immediate)),
-        (0xD0, OpCode::new(0xD0, "BNE", 2, 2, AddressingMode::Immediate)),
-        (0xF0, OpCode::new(0xF0, "BEQ", 2, 2, AddressingMode::Immediate)),
+        (0x10, OpCode::new(0x10, "BPL", 2, 2, AddressingMode::Relative)),
+        (0x30, OpCode::new(0x30, "BMI", 2, 2, AddressingMode::Relative)),
+        (0x50, OpCode::new(0x50, "BVC", 2, 3, AddressingMode::Relative)),
+        (0x70, OpCode::new(0x70, "BVS", 2, 2, AddressingMode::Relative)),
+        (0x90, OpCode::new(0x90, "BCC", 2, 2, AddressingMode::Relative)),
+        (0xB0, OpCode::new(0xB0, "BCS", 2, 2, AddressingMode::Relative)),
+        (0xD0, OpCode::new(0xD0, "BNE", 2, 2, AddressingMode::Relative)),
+        (0xF0, OpCode::new(0xF0, "BEQ", 2, 2, AddressingMode::Relative)),
 
         (0x00, OpCode::new(0x00, "BRK", 1, 7, AddressingMode::NoneAddressing)),
 

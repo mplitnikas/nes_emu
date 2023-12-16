@@ -107,6 +107,17 @@ impl CPU {
                 let hi = self.mem_read(ptr.wrapping_add(1) as u16);
                 (hi as u16) << 8 | (lo as u16)
             }
+            AddressingMode::Relative => {
+                // in this case the returned addr is the jump target
+                // (not including the opcode length)
+                let offset = self.mem_read(self.program_counter + 1);
+                if offset & 0b1000_0000 != 0 {
+                    self.program_counter
+                        .wrapping_sub(((offset ^ 0b1111_1111) + 1) as u16)
+                } else {
+                    self.program_counter.wrapping_add(offset as u16)
+                }
+            }
             AddressingMode::NoneAddressing => 0,
         }
     }
@@ -691,9 +702,7 @@ impl CPU {
 
     fn branch(&mut self, opcode: &OpCode, conditional: bool) {
         if conditional {
-            let addr = self.get_operand_address(&opcode.mode);
-            let value = self.mem_read(addr);
-            self.program_counter = self.program_counter.wrapping_add(value as i8 as i16 as u16);
+            self.program_counter = self.get_operand_address(&opcode.mode);
         }
         self.program_counter += opcode.length;
     }

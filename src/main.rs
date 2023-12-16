@@ -162,7 +162,12 @@ mod test {
         bus.mem_write(104, 0xCD);
         bus.mem_write(105, 0xF5);
         bus.mem_write(106, 0xC5);
-        bus.mem_write(107, 0x00);
+        bus.mem_write(107, 0xB0);
+        bus.mem_write(108, 0x04);
+        bus.mem_write(109, 0x00);
+        bus.mem_write(110, 0x00);
+        bus.mem_write(111, 0x00);
+        bus.mem_write(112, 0x00);
 
         let mut cpu = CPU::new(bus);
         cpu.program_counter = 0x64;
@@ -189,6 +194,11 @@ mod test {
             "0068  CD F5 C5  CMP $C5F5                       A:01 X:00 Y:02 P:24 SP:FD",
             result[3]
         );
+        assert_eq!(
+            "006B  B0 04     BCS $006F                       A:01 X:00 Y:02 P:27 SP:FD",
+            result[4]
+        );
+        assert_eq!(cpu.program_counter, 0x71);
     }
 
     #[test]
