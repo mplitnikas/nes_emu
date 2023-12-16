@@ -1,3 +1,5 @@
+use crate::cpu::Mem;
+use crate::cpu::CPU;
 use lazy_static::lazy_static;
 use std::collections::HashMap;
 
@@ -41,6 +43,69 @@ impl OpCode {
             mode,
         }
     }
+}
+
+pub fn format_instruction(cpu: &CPU) -> String {
+    let opcode = CPU_OPCODES.get(&cpu.mem_read(cpu.program_counter)).unwrap();
+    let name = opcode.name;
+    println!("opcode mode: {:?}", opcode.mode);
+    let address = format!("{:02X}", cpu.mem_read(cpu.program_counter + 1));
+    let operand = match opcode.mode {
+        AddressingMode::Immediate => format!("#${:02X}", cpu.mem_read(cpu.program_counter + 1)),
+        AddressingMode::ZeroPage => format!("${:02X}", cpu.mem_read(cpu.program_counter + 1)),
+        AddressingMode::ZeroPage_X => format!("${:02X},X", cpu.mem_read(cpu.program_counter + 1)),
+        AddressingMode::ZeroPage_Y => format!("${:02X},Y", cpu.mem_read(cpu.program_counter + 1)),
+        AddressingMode::Absolute => format!(
+            "${:02X}{:02X}",
+            cpu.mem_read(cpu.program_counter + 2),
+            cpu.mem_read(cpu.program_counter + 1)
+        ),
+        AddressingMode::Absolute_X => format!(
+            "${:02X}{:02X},X",
+            cpu.mem_read(cpu.program_counter + 2),
+            cpu.mem_read(cpu.program_counter + 1)
+        ),
+        AddressingMode::Absolute_Y => format!(
+            "${:02X}{:02X},Y",
+            cpu.mem_read(cpu.program_counter + 2),
+            cpu.mem_read(cpu.program_counter + 1)
+        ),
+        AddressingMode::Indirect => {
+            let op_addr = cpu.get_operand_address(&opcode.mode);
+            format!(
+                "(${:02X}) = {:04X} @ {:04X} = {:02X}",
+                cpu.mem_read(cpu.program_counter + 1),
+                op_addr,
+                op_addr,
+                cpu.mem_read(op_addr)
+            )
+        }
+        AddressingMode::Indirect_X => {
+            let op_addr = cpu.get_operand_address(&opcode.mode);
+            format!(
+                "(${:02X}),X = {:04X} @ {:04X} = {:02X}",
+                cpu.mem_read(cpu.program_counter + 1),
+                op_addr,
+                op_addr,
+                cpu.mem_read(op_addr)
+            )
+        }
+        AddressingMode::Indirect_Y => {
+            let op_addr = cpu.get_operand_address(&opcode.mode);
+            format!(
+                "(${:02X}),Y = {:04X} @ {:04X} = {:02X}",
+                cpu.mem_read(cpu.program_counter + 1),
+                op_addr,
+                op_addr,
+                cpu.mem_read(op_addr)
+            )
+        }
+        AddressingMode::NoneAddressing => "".to_string(),
+    };
+    format!(
+        "{:02X} {} {:>7} {:<26}",
+        opcode.code, address, name, operand
+    )
 }
 
 #[rustfmt::skip]
