@@ -41,6 +41,10 @@ fn main() {
     let bus = Bus::new(game_rom);
     let mut cpu = CPU::new(bus);
     cpu.reset();
+    // hack for nestest since it doesn't start at the addr in 0xFFFC
+    if filename.ends_with("nestest.nes") {
+        cpu.program_counter = 0xC000;
+    }
 
     let mut screen_state = [0 as u8; 32 * 3 * 32];
     let mut rng = rand::thread_rng();
@@ -155,7 +159,10 @@ mod test {
         bus.mem_write(101, 0x01);
         bus.mem_write(102, 0xca);
         bus.mem_write(103, 0x88);
-        bus.mem_write(104, 0x00);
+        bus.mem_write(104, 0xCD);
+        bus.mem_write(105, 0xF5);
+        bus.mem_write(106, 0xC5);
+        bus.mem_write(107, 0x00);
 
         let mut cpu = CPU::new(bus);
         cpu.program_counter = 0x64;
@@ -164,7 +171,6 @@ mod test {
         cpu.register_y = 3;
         let mut result: Vec<String> = vec![];
         cpu.run_with_callback(|cpu| {
-            println!("{:08b}", cpu.status);
             result.push(trace(cpu));
         });
         assert_eq!(
@@ -178,6 +184,10 @@ mod test {
         assert_eq!(
             "0067  88        DEY                             A:01 X:00 Y:03 P:26 SP:FD",
             result[2]
+        );
+        assert_eq!(
+            "0068  CD F5 C5  CMP $C5F5                       A:01 X:00 Y:02 P:24 SP:FD",
+            result[3]
         );
     }
 
@@ -196,6 +206,7 @@ mod test {
         bus.mem_write(0x400, 0xAA);
 
         let mut cpu = CPU::new(bus);
+        cpu.reset();
         cpu.program_counter = 0x64;
         cpu.register_y = 0;
         let mut result: Vec<String> = vec![];

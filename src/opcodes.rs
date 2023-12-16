@@ -48,13 +48,18 @@ impl OpCode {
 pub fn format_instruction(cpu: &CPU) -> String {
     let opcode = CPU_OPCODES.get(&cpu.mem_read(cpu.program_counter)).unwrap();
     let name = opcode.name;
-    println!("opcode mode: {:?}", opcode.mode);
-    let address = format!("{:02X}", cpu.mem_read(cpu.program_counter + 1));
+    let address = cpu.mem_read(cpu.program_counter + 1);
     let operand = match opcode.mode {
-        AddressingMode::Immediate => format!("#${:02X}", cpu.mem_read(cpu.program_counter + 1)),
-        AddressingMode::ZeroPage => format!("${:02X}", cpu.mem_read(cpu.program_counter + 1)),
-        AddressingMode::ZeroPage_X => format!("${:02X},X", cpu.mem_read(cpu.program_counter + 1)),
-        AddressingMode::ZeroPage_Y => format!("${:02X},Y", cpu.mem_read(cpu.program_counter + 1)),
+        AddressingMode::Immediate => format!("#${:02X}", address),
+        AddressingMode::ZeroPage => {
+            format!("${:02X} = {:02X}", address, cpu.mem_read(address as u16))
+        }
+        AddressingMode::ZeroPage_X => {
+            format!("${:02X},X = {:02X}", address, cpu.mem_read(address as u16))
+        }
+        AddressingMode::ZeroPage_Y => {
+            format!("${:02X},Y = {:02X}", address, cpu.mem_read(address as u16))
+        }
         AddressingMode::Absolute => format!(
             "${:02X}{:02X}",
             cpu.mem_read(cpu.program_counter + 2),
@@ -102,10 +107,11 @@ pub fn format_instruction(cpu: &CPU) -> String {
         }
         AddressingMode::NoneAddressing => "".to_string(),
     };
-    format!(
-        "{:02X} {} {:>7} {:<26}",
-        opcode.code, address, name, operand
-    )
+    let full_opcode = (0..opcode.length)
+        .map(|i| format!("{:02X}", cpu.mem_read(cpu.program_counter + i)))
+        .collect::<Vec<String>>()
+        .join(" ");
+    format!("{:<8} {:>4} {:<26}", full_opcode, name, operand)
 }
 
 #[rustfmt::skip]

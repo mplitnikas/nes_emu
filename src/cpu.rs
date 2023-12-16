@@ -47,6 +47,7 @@ impl Mem for CPU {
 
 const STACK_ADDRESS: u16 = 0x0100;
 const STACK_RESET: u8 = 0xFD;
+const RESET_VECTOR: u16 = 0xFFFC;
 
 impl CPU {
     pub fn new(bus: Bus) -> Self {
@@ -54,7 +55,7 @@ impl CPU {
             register_a: 0,
             register_x: 0,
             register_y: 0,
-            status: 0b0010_0000, // NV1B_DIZC
+            status: 0b0010_0100, // NV1B_DIZC
             program_counter: 0,
             stack_pointer: STACK_RESET,
             bus,
@@ -135,9 +136,10 @@ impl CPU {
         self.register_a = 0;
         self.register_x = 0;
         self.register_y = 0;
-        self.status = 0;
-        self.program_counter = self.mem_read_u16(0xFFFC);
-        self.stack_pointer = 0xFF;
+        self.status = 0b0010_0100;
+        self.program_counter = self.mem_read_u16(RESET_VECTOR);
+        // self.stack_pointer = STACK_RESET - 3;
+        self.stack_pointer = STACK_RESET;
     }
 
     pub fn load(&mut self, program: Vec<u8>) {
@@ -253,11 +255,11 @@ impl CPU {
         self.branch(opcode, self.status & 0b1000_0000 == 0);
     }
 
-    fn brk(&mut self, opcode: &OpCode) {
-        self.program_counter += opcode.length;
-        self.set_break_flag(true);
-        self.set_interrupt_flag(true);
-    }
+    // fn brk(&mut self, opcode: &OpCode) {
+    //     self.program_counter += opcode.length;
+    //     self.set_break_flag(true);
+    //     self.set_interrupt_flag(true);
+    // }
 
     fn bvc(&mut self, opcode: &OpCode) {
         self.branch(opcode, self.status & 0b0100_0000 == 0);
@@ -557,7 +559,7 @@ impl CPU {
         let value = self.mem_read(addr);
 
         let carry = self.status & 0b0000_0001;
-        let subtrahend = !value + 1 - carry;
+        let subtrahend = !value.wrapping_add(1).wrapping_sub(carry);
         let result = self.add(subtrahend);
 
         self.register_a = result;
@@ -704,7 +706,7 @@ impl CPU {
     where
         F: FnMut(&mut CPU),
     {
-        while self.status & 0b0001_0000 == 0 {
+        loop {
             callback(self);
             let byte = self.mem_read(self.program_counter);
             let opcode = CPU_OPCODES
@@ -737,7 +739,7 @@ impl CPU {
                 "bmi" => self.bmi(opcode),
                 "bne" => self.bne(opcode),
                 "bpl" => self.bpl(opcode),
-                "brk" => self.brk(opcode),
+                "brk" => return,
                 "bvc" => self.bvc(opcode),
                 "bvs" => self.bvs(opcode),
                 "clc" => self.clc(opcode),
