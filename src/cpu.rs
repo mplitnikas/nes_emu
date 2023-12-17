@@ -491,8 +491,7 @@ impl CPU {
     }
 
     fn php(&mut self, opcode: &OpCode) {
-        self.push_to_stack(self.status);
-        self.set_break_flag(true);
+        self.push_to_stack(self.status | 0b0001_0000);
         self.program_counter += opcode.length;
     }
 
@@ -503,7 +502,7 @@ impl CPU {
     }
 
     fn plp(&mut self, opcode: &OpCode) {
-        self.status = self.pull_from_stack();
+        self.status = self.pull_from_stack() & 0b1110_1111 | 0b0010_0000;
         self.program_counter += opcode.length;
     }
 
@@ -570,7 +569,11 @@ impl CPU {
         let value = self.mem_read(addr);
 
         let carry = self.status & 0b0000_0001;
-        let subtrahend = !value.wrapping_add(1).wrapping_sub(carry);
+        let subtrahend = (!value)
+            .wrapping_add(1)
+            .wrapping_sub(1 - carry)
+            .wrapping_sub(carry);
+        // subtract carry here since add() adds it
         let result = self.add(subtrahend);
 
         self.register_a = result;
