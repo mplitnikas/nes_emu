@@ -627,7 +627,8 @@ impl CPU {
     }
 
     fn tsx(&mut self, opcode: &OpCode) {
-        self.register_x = self.mem_read(STACK_ADDRESS + self.stack_pointer as u16);
+        self.register_x = self.stack_pointer;
+        self.update_zero_and_negative_flags(self.register_x);
         self.program_counter += opcode.length;
     }
 
@@ -638,7 +639,7 @@ impl CPU {
     }
 
     fn txs(&mut self, opcode: &OpCode) {
-        self.mem_write(STACK_ADDRESS + self.stack_pointer as u16, self.register_x);
+        self.stack_pointer = self.register_x;
         self.program_counter += opcode.length;
     }
 
