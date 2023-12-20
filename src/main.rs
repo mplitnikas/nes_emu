@@ -195,7 +195,7 @@ mod test {
             result[3]
         );
         assert_eq!(
-            "006B  B0 04     BCS $006F                       A:01 X:00 Y:02 P:27 SP:FD",
+            "006B  B0 04     BCS $0071                       A:01 X:00 Y:02 P:27 SP:FD",
             result[4]
         );
         assert_eq!(cpu.program_counter, 0x71);

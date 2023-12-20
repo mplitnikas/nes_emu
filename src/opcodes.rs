@@ -61,11 +61,11 @@ pub fn format_instruction(cpu: &CPU) -> String {
         AddressingMode::ZeroPage_Y => {
             format!("${:02X},Y = {:02X}", address, cpu.mem_read(address as u16))
         }
-        AddressingMode::Absolute => format!(
-            "${:02X}{:02X}",
-            cpu.mem_read(cpu.program_counter + 2),
-            cpu.mem_read(cpu.program_counter + 1)
-        ),
+        AddressingMode::Absolute => {
+            let addr = cpu.get_operand_address(&opcode.mode);
+            // format!("${:04X} = {:02X}", addr, cpu.mem_read(addr))
+            format!("${:04X}", addr)
+        }
         AddressingMode::Absolute_X => format!(
             "${:02X}{:02X},X",
             cpu.mem_read(cpu.program_counter + 2),
